@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -284,13 +284,13 @@
         </div>
 
         <div class="qr-section">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=http://localhost:3000" alt="QR Code">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://era-75th-anniversary.onrender.com" alt="QR Code">
             <p>Scan to register for this event</p>
         </div>
 
         <!-- Registration Counter -->
         <div class="counter-section">
-            <span>👥 Registered Guests: <strong id="guestCount">0</strong></span>
+            <span>?? Registered Guests: <strong id="guestCount">0</strong></span>
         </div>
 
         <form id="regForm">
@@ -372,7 +372,7 @@
     <div class="modal" id="successModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeModal('successModal')">&times;</button>
-            <div class="icon">🎉</div>
+            <div class="icon">??</div>
             <h2>Registration Successful!</h2>
             <p class="thank-you">Thank You, <span class="guest-name" id="guestNameDisplay"></span>!</p>
             <p>Your Guest ID:</p>
@@ -380,7 +380,7 @@
             <p style="font-size: 14px; color: #666;">Please save this ID for check-in</p>
             <div class="button-group">
                 <button class="btn btn-certificate" onclick="downloadCertificate()">Download Certificate</button>
-                <button class="btn btn-print" onclick="printCertificate()">🖨️ Print</button>
+                <button class="btn btn-print" onclick="printCertificate()">??? Print</button>
                 <button class="btn btn-primary" onclick="location.reload()">Register Another</button>
                 <button class="btn btn-secondary" onclick="closeModal('successModal')">Close</button>
             </div>
@@ -391,7 +391,7 @@
     <div class="modal" id="errorModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeModal('errorModal')">&times;</button>
-            <div class="icon">❌</div>
+            <div class="icon">?</div>
             <h2 style="color: #dc3545;">Registration Failed</h2>
             <div class="error-msg" id="errorMessage"></div>
             <button class="btn-primary" onclick="closeModal('errorModal')">Try Again</button>
