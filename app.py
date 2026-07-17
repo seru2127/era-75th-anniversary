@@ -14,7 +14,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 import os
-import sys
 
 app = FastAPI()
 
@@ -349,37 +348,6 @@ def check_in(guest_id: str):
         conn.close()
         
         return {"message": "Guest checked in successfully", "guest_id": guest_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Bulk check-in
-@app.post("/api/guests/bulk-checkin")
-def bulk_checkin(guest_ids: List[str]):
-    try:
-        conn = get_db()
-        now = datetime.now()
-        for guest_id in guest_ids:
-            conn.execute('''
-                UPDATE registrations 
-                SET checked_in = 1, checked_in_at = ? 
-                WHERE guest_id = ? AND checked_in = 0
-            ''', (now, guest_id))
-        conn.commit()
-        conn.close()
-        return {"message": f"Checked in {len(guest_ids)} guests"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Bulk delete
-@app.post("/api/guests/bulk-delete")
-def bulk_delete(guest_ids: List[str]):
-    try:
-        conn = get_db()
-        placeholders = ','.join(['?'] * len(guest_ids))
-        conn.execute(f"DELETE FROM registrations WHERE guest_id IN ({placeholders})", guest_ids)
-        conn.commit()
-        conn.close()
-        return {"message": f"Deleted {len(guest_ids)} guests"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
