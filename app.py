@@ -1,6 +1,6 @@
 ﻿from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 import sqlite3
 import secrets
 import string
@@ -25,6 +25,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve HTML files at root
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+# Serve other HTML files
+@app.get("/{filename}.html", response_class=HTMLResponse)
+async def serve_html(filename: str):
+    file_path = f"{filename}.html"
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    raise HTTPException(status_code=404, detail="Page not found")
+
+# API Health check
+@app.get("/api/health")
+def health():
+    return {"status": "healthy", "database": "connected"}
 
 # Database
 def get_db():
@@ -71,16 +91,6 @@ class RegistrationCreate(BaseModel):
     job_title: Optional[str] = None
     city: Optional[str] = None
     category: str
-
-# Root endpoint
-@app.get("/")
-def root():
-    return {"message": "ERA 75th Anniversary API", "status": "running"}
-
-# Health check
-@app.get("/api/health")
-def health():
-    return {"status": "healthy", "database": "connected"}
 
 # Register endpoint
 @app.post("/api/register")
@@ -635,7 +645,6 @@ def search_guests(q: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# For Render deployment
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
