@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Admin - Registrations</title>
@@ -117,7 +117,7 @@
         
         <!-- Search Bar -->
         <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="🔍 Search by name, email, ID, phone, or organization..." onkeyup="searchGuests()">
+            <input type="text" id="searchInput" placeholder="?? Search by name, email, ID, phone, or organization..." onkeyup="searchGuests()">
             <span style="font-size:14px;color:#666;" id="searchResultCount"></span>
         </div>
         
@@ -155,11 +155,11 @@
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;">Loading...</td></tr>';
             
             try {
-                const response = await fetch('http://localhost:8000/api/guests');
+                const response = await fetch('https://era-75th-anniversary.onrender.com/api/guests');
                 if (!response.ok) throw new Error('Failed to load data');
                 allGuests = await response.json();
                 
-                const statsResponse = await fetch('http://localhost:8000/api/stats');
+                const statsResponse = await fetch('https://era-75th-anniversary.onrender.com/api/stats');
                 const stats = await statsResponse.json();
                 
                 document.getElementById('totalCount').textContent = stats.total || 0;
@@ -197,7 +197,7 @@
                 html += '<td>' + (g.organization || '-') + '</td>';
                 html += '<td><span class="badge badge-' + (g.category || 'Guest') + '">' + (g.category || 'Guest') + '</span></td>';
                 html += '<td><span class="badge ' + (checkedIn ? 'badge-checked-in' : 'badge-pending') + '">' + (checkedIn ? 'Checked In' : 'Pending') + '</span></td>';
-                html += '<td><button class="btn btn-certificate" onclick="downloadCert(\'' + g.guest_id + '\')">📄 Download</button></td>';
+                html += '<td><button class="btn btn-certificate" onclick="downloadCert(\'' + g.guest_id + '\')">?? Download</button></td>';
                 html += '</tr>';
             }
             tbody.innerHTML = html;
@@ -238,17 +238,17 @@
         // Download Certificate
         function downloadCert(guestId) {
             if (guestId) {
-                window.open('http://localhost:8000/api/certificate/' + guestId, '_blank');
-                showToast('📄 Certificate downloaded!');
+                window.open('https://era-75th-anniversary.onrender.com/api/certificate/' + guestId, '_blank');
+                showToast('?? Certificate downloaded!');
             } else {
-                showToast('❌ No guest ID available', 'error');
+                showToast('? No guest ID available', 'error');
             }
         }
 
         // Export functions
         async function exportCSV() {
             try {
-                window.open('http://localhost:8000/api/export/csv', '_blank');
+                window.open('https://era-75th-anniversary.onrender.com/api/export/csv', '_blank');
                 showToast('CSV exported successfully!');
             } catch (error) {
                 showToast('Export failed: ' + error.message, 'error');
@@ -257,7 +257,7 @@
 
         async function exportJSON() {
             try {
-                const response = await fetch('http://localhost:8000/api/export/json');
+                const response = await fetch('https://era-75th-anniversary.onrender.com/api/export/json');
                 const data = await response.json();
                 
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -277,7 +277,7 @@
 
         async function exportExcel() {
             try {
-                window.open('http://localhost:8000/api/export/excel', '_blank');
+                window.open('https://era-75th-anniversary.onrender.com/api/export/excel', '_blank');
                 showToast('Excel file exported successfully!');
             } catch (error) {
                 showToast('Export failed: ' + error.message, 'error');

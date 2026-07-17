@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Analytics - ERA 75th</title>
@@ -96,12 +96,12 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>📊 Analytics Dashboard</h1>
+                <h1>?? Analytics Dashboard</h1>
                 <span style="font-size: 14px; color: #666;">ERA 75th Anniversary Event</span>
             </div>
             <div>
-                <a href="admin.html">📋 Admin</a>
-                <a href="index.html">← Back</a>
+                <a href="admin.html">?? Admin</a>
+                <a href="index.html">? Back</a>
             </div>
         </div>
 
@@ -130,17 +130,17 @@
 
         <div class="two-col">
             <div class="chart-container">
-                <h3>📈 Daily Registrations (Last 30 Days)</h3>
+                <h3>?? Daily Registrations (Last 30 Days)</h3>
                 <canvas id="dailyChart"></canvas>
             </div>
             <div class="chart-container">
-                <h3>🏷️ Category Breakdown</h3>
+                <h3>??? Category Breakdown</h3>
                 <div id="categoryBreakdown"></div>
             </div>
         </div>
 
         <div class="chart-container">
-            <h3>🕐 Check-in Distribution by Hour</h3>
+            <h3>?? Check-in Distribution by Hour</h3>
             <canvas id="checkinChart"></canvas>
         </div>
     </div>
@@ -153,7 +153,7 @@
         async function loadAnalytics() {
             try {
                 // Load stats
-                const statsRes = await fetch('http://localhost:8000/api/stats');
+                const statsRes = await fetch('https://era-75th-anniversary.onrender.com/api/stats');
                 const stats = await statsRes.json();
                 
                 document.getElementById('total').textContent = stats.total || 0;
@@ -163,17 +163,17 @@
                 document.getElementById('week').textContent = stats.last_7_days || 0;
 
                 // Load daily data
-                const dailyRes = await fetch('http://localhost:8000/api/analytics/daily');
+                const dailyRes = await fetch('https://era-75th-anniversary.onrender.com/api/analytics/daily');
                 const dailyData = await dailyRes.json();
                 createDailyChart(dailyData);
 
                 // Load categories
-                const catRes = await fetch('http://localhost:8000/api/analytics/categories');
+                const catRes = await fetch('https://era-75th-anniversary.onrender.com/api/analytics/categories');
                 const catData = await catRes.json();
                 renderCategories(catData);
 
                 // Load check-in data
-                const checkinRes = await fetch('http://localhost:8000/api/analytics/checkins');
+                const checkinRes = await fetch('https://era-75th-anniversary.onrender.com/api/analytics/checkins');
                 const checkinData = await checkinRes.json();
                 createCheckinChart(checkinData.by_hour);
 

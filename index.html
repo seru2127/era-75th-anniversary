@@ -407,7 +407,7 @@
 
         function downloadCertificate() {
             if (currentGuestId) {
-                window.open('http://localhost:8000/api/certificate/' + currentGuestId, '_blank');
+                window.open('https://era-75th-anniversary.onrender.com/api/certificate/' + currentGuestId, '_blank');
             } else {
                 alert('No guest ID available. Please register first.');
             }
@@ -415,7 +415,7 @@
 
         function printCertificate() {
             if (currentGuestId) {
-                window.open('http://localhost:8000/api/certificate/' + currentGuestId + '?print=true', '_blank');
+                window.open('https://era-75th-anniversary.onrender.com/api/certificate/' + currentGuestId + '?print=true', '_blank');
             } else {
                 alert('No guest ID available. Please register first.');
             }
@@ -424,7 +424,7 @@
         // Update guest count
         async function updateGuestCount() {
             try {
-                const response = await fetch('http://localhost:8000/api/stats');
+                const response = await fetch('https://era-75th-anniversary.onrender.com/api/stats');
                 const stats = await response.json();
                 document.getElementById('guestCount').textContent = stats.total || 0;
             } catch(e) {
@@ -503,7 +503,7 @@
             console.log('Sending data:', data);
             
             try {
-                const response = await fetch('http://localhost:8000/api/register', {
+                const response = await fetch('https://era-75th-anniversary.onrender.com/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)

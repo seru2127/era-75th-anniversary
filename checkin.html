@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>ERA 75th - Check-in</title>
@@ -106,7 +106,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📋 ERA 75th - Check-in</h1>
+        <h1>?? ERA 75th - Check-in</h1>
         <p class="subtitle">Scan or enter Guest ID</p>
         
         <div class="qr-scanner">
@@ -116,7 +116,7 @@
         
         <div class="input-group">
             <input type="text" id="guestIdInput" placeholder="Enter Guest ID (e.g., ERA75-XXXXXX)">
-            <button class="btn" onclick="checkGuest()">🔍 Check</button>
+            <button class="btn" onclick="checkGuest()">?? Check</button>
         </div>
         
         <div id="guestInfo" class="guest-info">
@@ -137,14 +137,14 @@
             
             <div id="statusDisplay"></div>
             
-            <button class="btn btn-success" id="checkinBtn" onclick="performCheckin()" style="width:100%;">✅ Check In</button>
+            <button class="btn btn-success" id="checkinBtn" onclick="performCheckin()" style="width:100%;">? Check In</button>
         </div>
         
-        <a href="index.html" class="back-link">← Back to Registration</a>
+        <a href="index.html" class="back-link">? Back to Registration</a>
         
         <!-- Footer - No "View All Registrations" link -->
         <div class="footer-links">
-            <a href="login.html">🔐 Admin Login</a>
+            <a href="login.html">?? Admin Login</a>
         </div>
     </div>
 
@@ -165,7 +165,7 @@
             }
             
             try {
-                const response = await fetch('http://localhost:8000/api/guest/' + guestId);
+                const response = await fetch('https://era-75th-anniversary.onrender.com/api/guest/' + guestId);
                 
                 if (response.ok) {
                     currentGuest = await response.json();
@@ -196,10 +196,10 @@
             document.getElementById('guestInfo').classList.add('show');
             
             if (guest.checked_in === 1) {
-                showStatus('✅ Already checked in on ' + new Date(guest.checked_in_at).toLocaleString(), 'success');
+                showStatus('? Already checked in on ' + new Date(guest.checked_in_at).toLocaleString(), 'success');
                 document.getElementById('checkinBtn').style.display = 'none';
             } else {
-                showStatus('⏳ Pending check-in', 'pending');
+                showStatus('? Pending check-in', 'pending');
                 document.getElementById('checkinBtn').style.display = 'block';
             }
         }
@@ -217,21 +217,21 @@
             if (!confirm('Check in ' + currentGuest.full_name + '?')) return;
             
             try {
-                const response = await fetch('http://localhost:8000/api/checkin/' + currentGuest.guest_id, {
+                const response = await fetch('https://era-75th-anniversary.onrender.com/api/checkin/' + currentGuest.guest_id, {
                     method: 'POST'
                 });
                 
                 if (response.ok) {
-                    showStatus('✅ Check-in successful! Welcome ' + currentGuest.full_name + '!', 'success');
+                    showStatus('? Check-in successful! Welcome ' + currentGuest.full_name + '!', 'success');
                     document.getElementById('checkinBtn').style.display = 'none';
                     document.getElementById('guestIdInput').value = '';
                     currentGuest = null;
                 } else {
                     const error = await response.json();
-                    showStatus('❌ Error: ' + error.detail, 'error');
+                    showStatus('? Error: ' + error.detail, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Network error: ' + error.message, 'error');
+                showStatus('? Network error: ' + error.message, 'error');
             }
         }
     </script>
