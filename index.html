@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>ERA 75th Anniversary Registration</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -408,7 +408,16 @@
 
         function downloadCertificate() {
             if (currentGuestId) {
+                // Open in new tab for mobile compatibility
                 window.open(API_BASE + '/api/certificate/' + currentGuestId, '_blank');
+                // Also try to download directly
+                const link = document.createElement('a');
+                link.href = API_BASE + '/api/certificate/' + currentGuestId;
+                link.target = '_blank';
+                link.download = 'certificate_' + currentGuestId + '.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             } else {
                 alert('No guest ID available. Please register first.');
             }
