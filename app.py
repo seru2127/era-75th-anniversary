@@ -171,6 +171,194 @@ def get_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# === EXPORT FUNCTIONS ===
+
+# Export to CSV
+@app.get("/api/export/csv")
+def export_csv():
+    try:
+        conn = get_db()
+        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
+        conn.close()
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        writer.writerow([
+            'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
+            'Organization', 'Job Title', 'City', 'Category', 
+            'Registered At', 'Checked In', 'Checked In At'
+        ])
+        
+        for guest in guests:
+            guest_dict = dict(guest)
+            writer.writerow([
+                guest_dict.get('guest_id', ''),
+                guest_dict.get('full_name', ''),
+                guest_dict.get('gender', ''),
+                guest_dict.get('phone', ''),
+                guest_dict.get('email', ''),
+                guest_dict.get('organization', '') or '',
+                guest_dict.get('job_title', '') or '',
+                guest_dict.get('city', '') or '',
+                guest_dict.get('category', ''),
+                guest_dict.get('registered_at', ''),
+                'Yes' if guest_dict.get('checked_in', 0) == 1 else 'No',
+                guest_dict.get('checked_in_at', '') or ''
+            ])
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": "attachment; filename=registrations_export.csv"
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error: {str(e)}",
+            media_type="text/plain",
+            status_code=500
+        )
+
+# Export to JSON
+@app.get("/api/export/json")
+def export_json():
+    try:
+        conn = get_db()
+        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
+        conn.close()
+        return [dict(row) for row in guests]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Export to Excel
+@app.get("/api/export/excel")
+def export_excel():
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        import io
+        
+        conn = get_db()
+        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
+        conn.close()
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "ERA 75th Registrations"
+        
+        # Define styles
+        header_font = Font(bold=True, color="FFFFFF", size=12)
+        header_fill = PatternFill(start_color="FF6B00", end_color="FF6B00", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Headers
+        headers = [
+            'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
+            'Organization', 'Job Title', 'City', 'Category', 
+            'Registered At', 'Checked In', 'Checked In At'
+        ]
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = border
+        
+        for row_idx, guest in enumerate(guests, 2):
+            guest_dict = dict(guest)
+            data = [
+                guest_dict.get('guest_id', ''),
+                guest_dict.get('full_name', ''),
+                guest_dict.get('gender', ''),
+                guest_dict.get('phone', ''),
+                guest_dict.get('email', ''),
+                guest_dict.get('organization', '') or '',
+                guest_dict.get('job_title', '') or '',
+                guest_dict.get('city', '') or '',
+                guest_dict.get('category', ''),
+                guest_dict.get('registered_at', ''),
+                'Yes' if guest_dict.get('checked_in', 0) == 1 else 'No',
+                guest_dict.get('checked_in_at', '') or ''
+            ]
+            
+            for col, value in enumerate(data, 1):
+                cell = ws.cell(row=row_idx, column=col, value=value)
+                cell.border = border
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+                if col == 11:
+                    if value == 'Yes':
+                        cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+                    else:
+                        cell.fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+        
+        for col in range(1, len(headers) + 1):
+            column_letter = get_column_letter(col)
+            ws.column_dimensions[column_letter].auto_size = True
+            if col in [2, 5, 6]:
+                ws.column_dimensions[column_letter].width = 25
+        
+        ws.freeze_panes = 'A2'
+        
+        # Summary sheet
+        summary_ws = wb.create_sheet("Summary")
+        summary_ws['A1'] = "ERA 75th Anniversary Event"
+        summary_ws['A1'].font = Font(bold=True, size=16, color="FF6B00")
+        summary_ws['A3'] = "Registration Summary Report"
+        summary_ws['A3'].font = Font(bold=True, size=14)
+        
+        total = len(guests)
+        checked_in = sum(1 for g in guests if g['checked_in'] == 1)
+        pending = total - checked_in
+        
+        summary_data = [
+            ['', ''],
+            ['Total Registrations', total],
+            ['Checked In', checked_in],
+            ['Pending', pending],
+            ['Check-in Rate', f"{round((checked_in/total*100) if total > 0 else 0, 1)}%"],
+            ['', ''],
+            ['Generated On', datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+        ]
+        
+        for row_idx, (label, value) in enumerate(summary_data, 5):
+            summary_ws.cell(row=row_idx, column=1, value=label)
+            summary_ws.cell(row=row_idx, column=2, value=value)
+            if row_idx > 5:
+                summary_ws.cell(row=row_idx, column=1).font = Font(bold=True)
+        
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=registrations_export.xlsx"
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error: {str(e)}",
+            media_type="text/plain",
+            status_code=500
+        )
+
+# === END EXPORT FUNCTIONS ===
+
 # Certificate generation
 @app.get("/api/certificate/{guest_id}")
 def generate_certificate(guest_id: str):
