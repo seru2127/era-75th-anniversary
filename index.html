@@ -1,0 +1,540 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERA 75th Anniversary Registration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .big-number {
+            position: fixed;
+            font-size: 500px;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.15);
+            z-index: 0;
+            user-select: none;
+            pointer-events: none;
+            font-family: 'Arial Black', Arial, sans-serif;
+        }
+        .number-7 { left: -30px; top: 50%; transform: translateY(-50%); }
+        .number-5 { right: -30px; top: 50%; transform: translateY(-50%); }
+        .container {
+            background: white;
+            max-width: 550px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            position: relative;
+            z-index: 1;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        .container::-webkit-scrollbar { width: 6px; }
+        .container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .container::-webkit-scrollbar-thumb { background: #ff6b00; border-radius: 10px; }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #ffd700;
+        }
+        .header-logo { min-width: 60px; }
+        .header-logo img { height: 50px; width: auto; max-width: 80px; object-fit: contain; }
+        .header-center { text-align: center; flex: 1; }
+        .header-center h1 { color: #ff6b00; font-size: 22px; }
+        .header-center .subtitle { color: #666; font-size: 12px; }
+        .header-center .badge {
+            display: inline-block;
+            background: #ff6b00;
+            color: white;
+            padding: 3px 15px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+        
+        .qr-section {
+            text-align: center;
+            padding: 15px;
+            background: #fff5eb;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px dashed #ff6b00;
+        }
+        .qr-section img { max-width: 120px; height: auto; }
+        .qr-section p { font-size: 12px; color: #666; margin-top: 5px; }
+        
+        .counter-section {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        .counter-section span {
+            font-size: 14px;
+            color: #666;
+        }
+        .counter-section strong {
+            color: #ff6b00;
+            font-size: 18px;
+        }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 14px;
+            color: #333;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        input:focus, select:focus { outline: none; border-color: #ff6b00; }
+        .required { color: #ff6b00; }
+        .error {
+            color: #dc3545;
+            font-size: 12px;
+            display: none;
+            margin-top: 3px;
+        }
+        .error.show { display: block; }
+        .gender-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .gender-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .gender-group input { width: auto; }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .checkbox-group input { width: auto; }
+        .checkbox-group label { font-weight: normal; font-size: 14px; }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff6b00, #e65c00);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 0, 0.4);
+        }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .loading { text-align: center; padding: 10px; color: #ff6b00; display: none; }
+        
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: #ff6b00;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .footer-links a:hover { text-decoration: underline; }
+        .footer-links .admin-link {
+            background: #ff6b00;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+        .footer-links .admin-link:hover { background: #e65c00; text-decoration: none; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal .icon { font-size: 60px; }
+        .modal .guest-name { font-size: 24px; font-weight: bold; color: #ff6b00; }
+        .modal .guest-id {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #ff6b00;
+            margin: 15px 0;
+            border: 2px solid #ff6b00;
+        }
+        .modal .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+            padding: 5px 10px;
+        }
+        .modal .close-btn:hover { color: #333; }
+        .modal button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .modal button:hover { transform: translateY(-2px); }
+        .btn-primary { background: #ff6b00; color: white; }
+        .btn-secondary { background: #e0e0e0; color: #333; }
+        .btn-certificate { background: #28a745; color: white; }
+        .btn-certificate:hover { background: #1e7e34; }
+        .btn-print { background: #17a2b8; color: white; }
+        .btn-print:hover { background: #138496; }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            .big-number { font-size: 250px; }
+            .number-7 { left: -20px; }
+            .number-5 { right: -20px; }
+            .gender-group { flex-wrap: wrap; }
+            .header-logo img { height: 35px; }
+            .header-center h1 { font-size: 18px; }
+            .button-group { flex-direction: column; }
+            .button-group button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="big-number number-7">7</div>
+    <div class="big-number number-5">5</div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-logo">
+                <img src="era_75_logo.png" alt="ERA 75 Logo" style="height:55px; width:auto; max-width:80px; object-fit:contain;">
+            </div>
+            <div class="header-center">
+                <h1>ERA 75th Anniversary</h1>
+                <p class="subtitle">Guest Registration</p>
+                <span class="badge">July 23, 2026</span>
+            </div>
+            <div class="header-logo">
+                <img src="era_logo.png" alt="ERA Logo" style="height:50px; width:auto; max-width:80px; object-fit:contain;">
+            </div>
+        </div>
+
+        <div class="qr-section">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=http://localhost:3000" alt="QR Code">
+            <p>Scan to register for this event</p>
+        </div>
+
+        <!-- Registration Counter -->
+        <div class="counter-section">
+            <span>👥 Registered Guests: <strong id="guestCount">0</strong></span>
+        </div>
+
+        <form id="regForm">
+            <div class="form-group">
+                <label>Full Name <span class="required">*</span></label>
+                <input type="text" id="fullName" placeholder="Enter your full name">
+                <div class="error" id="fullNameErr">Please enter your full name</div>
+            </div>
+
+            <div class="form-group">
+                <label>Gender <span class="required">*</span></label>
+                <div class="gender-group">
+                    <label><input type="radio" name="gender" value="Male" checked> Male</label>
+                    <label><input type="radio" name="gender" value="Female"> Female</label>
+                    <label><input type="radio" name="gender" value="Other"> Other</label>
+                </div>
+                <div class="error" id="genderErr">Please select a gender</div>
+            </div>
+
+            <div class="form-group">
+                <label>Phone <span class="required">*</span></label>
+                <input type="text" id="phone" placeholder="0912345678">
+                <div class="error" id="phoneErr">Please enter a valid phone number</div>
+            </div>
+
+            <div class="form-group">
+                <label>Email <span class="required">*</span></label>
+                <input type="email" id="email" placeholder="your@email.com">
+                <div class="error" id="emailErr">Please enter a valid email</div>
+            </div>
+
+            <div class="form-group">
+                <label>Organization</label>
+                <input type="text" id="organization" placeholder="Your organization">
+            </div>
+
+            <div class="form-group">
+                <label>Job Title</label>
+                <input type="text" id="jobTitle" placeholder="Your job title">
+            </div>
+
+            <div class="form-group">
+                <label>City/Region</label>
+                <input type="text" id="city" placeholder="Your city">
+            </div>
+
+            <div class="form-group">
+                <label>Category <span class="required">*</span></label>
+                <select id="category">
+                    <option value="">Select</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Guest">Guest</option>
+                    <option value="Staff">Staff</option>
+                    <option value="Media">Media</option>
+                    <option value="Exhibitor">Exhibitor</option>
+                    <option value="Visitor">Visitor</option>
+                </select>
+                <div class="error" id="categoryErr">Please select a category</div>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="terms">
+                <label>I agree to the Terms <span class="required">*</span></label>
+            </div>
+            <div class="error" id="termsErr">You must agree to the terms</div>
+
+            <button type="button" class="btn" id="registerBtn">Register Now</button>
+            <div class="loading" id="loadingDiv">Processing...</div>
+        </form>
+
+        <div class="footer-links">
+            <a href="#" onclick="location.reload()">Refresh</a>
+            <a href="checkin.html">Check-in</a>
+            <a href="login.html" class="admin-link">Admin Login</a>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('successModal')">&times;</button>
+            <div class="icon">🎉</div>
+            <h2>Registration Successful!</h2>
+            <p class="thank-you">Thank You, <span class="guest-name" id="guestNameDisplay"></span>!</p>
+            <p>Your Guest ID:</p>
+            <div class="guest-id" id="guestIdDisplay"></div>
+            <p style="font-size: 14px; color: #666;">Please save this ID for check-in</p>
+            <div class="button-group">
+                <button class="btn btn-certificate" onclick="downloadCertificate()">Download Certificate</button>
+                <button class="btn btn-print" onclick="printCertificate()">🖨️ Print</button>
+                <button class="btn btn-primary" onclick="location.reload()">Register Another</button>
+                <button class="btn btn-secondary" onclick="closeModal('successModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal" id="errorModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('errorModal')">&times;</button>
+            <div class="icon">❌</div>
+            <h2 style="color: #dc3545;">Registration Failed</h2>
+            <div class="error-msg" id="errorMessage"></div>
+            <button class="btn-primary" onclick="closeModal('errorModal')">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        let currentGuestId = '';
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function downloadCertificate() {
+            if (currentGuestId) {
+                window.open('http://localhost:8000/api/certificate/' + currentGuestId, '_blank');
+            } else {
+                alert('No guest ID available. Please register first.');
+            }
+        }
+
+        function printCertificate() {
+            if (currentGuestId) {
+                window.open('http://localhost:8000/api/certificate/' + currentGuestId + '?print=true', '_blank');
+            } else {
+                alert('No guest ID available. Please register first.');
+            }
+        }
+
+        // Update guest count
+        async function updateGuestCount() {
+            try {
+                const response = await fetch('http://localhost:8000/api/stats');
+                const stats = await response.json();
+                document.getElementById('guestCount').textContent = stats.total || 0;
+            } catch(e) {
+                console.log('Could not load guest count');
+            }
+        }
+
+        // Load guest count on page load
+        updateGuestCount();
+
+        document.getElementById('registerBtn').addEventListener('click', async function() {
+            console.log('Register button clicked');
+            
+            document.querySelectorAll('.error').forEach(el => el.classList.remove('show'));
+            
+            let valid = true;
+            
+            const fullName = document.getElementById('fullName');
+            if (!fullName.value.trim()) {
+                document.getElementById('fullNameErr').classList.add('show');
+                valid = false;
+            }
+            
+            const phone = document.getElementById('phone');
+            if (!phone.value.trim() || phone.value.length < 10) {
+                document.getElementById('phoneErr').classList.add('show');
+                valid = false;
+            }
+            
+            const email = document.getElementById('email');
+            if (!email.value.trim() || !email.value.includes('@')) {
+                document.getElementById('emailErr').classList.add('show');
+                valid = false;
+            }
+            
+            const category = document.getElementById('category');
+            if (!category.value) {
+                document.getElementById('categoryErr').classList.add('show');
+                valid = false;
+            }
+            
+            const gender = document.querySelector('input[name="gender"]:checked');
+            if (!gender) {
+                document.getElementById('genderErr').classList.add('show');
+                valid = false;
+            }
+            
+            if (!document.getElementById('terms').checked) {
+                document.getElementById('termsErr').classList.add('show');
+                valid = false;
+            }
+            
+            if (!valid) {
+                console.log('Validation failed');
+                return;
+            }
+            
+            const btn = document.getElementById('registerBtn');
+            const loading = document.getElementById('loadingDiv');
+            
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            loading.style.display = 'block';
+            
+            const data = {
+                full_name: fullName.value.trim(),
+                gender: gender.value,
+                phone: phone.value.trim(),
+                email: email.value.trim(),
+                organization: document.getElementById('organization').value.trim() || null,
+                job_title: document.getElementById('jobTitle').value.trim() || null,
+                city: document.getElementById('city').value.trim() || null,
+                category: category.value
+            };
+            
+            console.log('Sending data:', data);
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Response data:', result);
+                
+                if (response.ok) {
+                    currentGuestId = result.guest_id;
+                    document.getElementById('guestNameDisplay').textContent = data.full_name;
+                    document.getElementById('guestIdDisplay').textContent = result.guest_id;
+                    document.getElementById('successModal').classList.add('show');
+                    document.getElementById('regForm').reset();
+                    // Update guest count
+                    updateGuestCount();
+                } else {
+                    document.getElementById('errorMessage').textContent = result.detail || 'Registration failed';
+                    document.getElementById('errorModal').classList.add('show');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('errorMessage').textContent = 'Cannot connect to backend: ' + error.message;
+                document.getElementById('errorModal').classList.add('show');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Register Now';
+            loading.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

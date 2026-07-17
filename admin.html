@@ -1,0 +1,293 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Registrations</title>
+    <style>
+        body { font-family: Arial; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }
+        h1 { color: #ff6b00; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #ff6b00; color: white; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn-primary { background: #ff6b00; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-excel { background: #217346; color: white; }
+        .btn-excel:hover { background: #1a5c38; }
+        .btn-certificate { background: #28a745; color: white; padding: 4px 10px; font-size: 12px; }
+        .btn-certificate:hover { background: #1e7e34; }
+        .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .badge-VIP { background: #ffd700; }
+        .badge-Guest { background: #90ee90; }
+        .badge-Staff { background: #87ceeb; }
+        .badge-Media { background: #ffb6c1; }
+        .badge-Exhibitor { background: #dda0dd; }
+        .badge-Visitor { background: #f0e68c; }
+        .badge-checked-in { background: #28a745; color: white; }
+        .badge-pending { background: #ffc107; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b00;
+        }
+        .stat-box .number { font-size: 24px; font-weight: bold; color: #ff6b00; }
+        .stat-box .label { font-size: 12px; color: #666; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .error { color: red; padding: 15px; background: #ffe6e6; border-radius: 5px; margin: 10px 0; display: none; }
+        .error.show { display: block; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+        }
+        .toast.show { display: block; }
+        .toast.error { background: #dc3545; }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .search-bar input:focus { outline: none; border-color: #ff6b00; }
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            table { font-size: 12px; }
+            th, td { padding: 8px; }
+            .search-bar { flex-direction: column; }
+            .search-bar input { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Registrations - ERA 75th Anniversary</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="loadData()">Refresh</button>
+                <button class="btn btn-excel" onclick="exportExcel()">Excel</button>
+                <button class="btn btn-success" onclick="exportCSV()">CSV</button>
+                <button class="btn btn-info" onclick="exportJSON()">JSON</button>
+                <a href="index.html" class="btn btn-secondary">Back</a>
+                <a href="login.html" class="btn btn-secondary">Logout</a>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats">
+            <div class="stat-box"><div class="number" id="totalCount">0</div><div class="label">Total</div></div>
+            <div class="stat-box"><div class="number" id="checkedInCount">0</div><div class="label">Checked In</div></div>
+            <div class="stat-box"><div class="number" id="pendingCount">0</div><div class="label">Pending</div></div>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Search by name, email, ID, phone, or organization..." onkeyup="searchGuests()">
+            <span style="font-size:14px;color:#666;" id="searchResultCount"></span>
+        </div>
+        
+        <div id="errorMsg" class="error"></div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Guest ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Organization</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Certificate</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="8" style="text-align:center;padding:30px;">Loading registrations...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let allGuests = [];
+
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            errorMsg.classList.remove('show');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;">Loading...</td></tr>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/guests');
+                if (!response.ok) throw new Error('Failed to load data');
+                allGuests = await response.json();
+                
+                const statsResponse = await fetch('http://localhost:8000/api/stats');
+                const stats = await statsResponse.json();
+                
+                document.getElementById('totalCount').textContent = stats.total || 0;
+                document.getElementById('checkedInCount').textContent = stats.checked_in || 0;
+                document.getElementById('pendingCount').textContent = stats.pending || 0;
+                
+                renderTable(allGuests);
+                
+            } catch (error) {
+                errorMsg.textContent = 'Error: ' + error.message;
+                errorMsg.classList.add('show');
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:red;">Failed to load data</td></tr>';
+                console.error('Error:', error);
+            }
+        }
+
+        function renderTable(guests) {
+            const tbody = document.getElementById('tableBody');
+            
+            if (!guests || guests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;">No registrations yet</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            for (let i = 0; i < guests.length; i++) {
+                const g = guests[i];
+                const checkedIn = g.checked_in === 1;
+                
+                html += '<tr>';
+                html += '<td><strong>' + (g.guest_id || 'N/A') + '</strong></td>';
+                html += '<td>' + (g.full_name || 'N/A') + '</td>';
+                html += '<td>' + (g.email || 'N/A') + '</td>';
+                html += '<td>' + (g.phone || '-') + '</td>';
+                html += '<td>' + (g.organization || '-') + '</td>';
+                html += '<td><span class="badge badge-' + (g.category || 'Guest') + '">' + (g.category || 'Guest') + '</span></td>';
+                html += '<td><span class="badge ' + (checkedIn ? 'badge-checked-in' : 'badge-pending') + '">' + (checkedIn ? 'Checked In' : 'Pending') + '</span></td>';
+                html += '<td><button class="btn btn-certificate" onclick="downloadCert(\'' + g.guest_id + '\')">📄 Download</button></td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+            document.getElementById('searchResultCount').textContent = guests.length + ' results';
+        }
+
+        // Search function
+        function searchGuests() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!query) {
+                renderTable(allGuests);
+                return;
+            }
+            
+            const filtered = allGuests.filter(g => 
+                (g.guest_id && g.guest_id.toLowerCase().includes(query)) ||
+                (g.full_name && g.full_name.toLowerCase().includes(query)) ||
+                (g.email && g.email.toLowerCase().includes(query)) ||
+                (g.phone && g.phone.includes(query)) ||
+                (g.organization && g.organization.toLowerCase().includes(query))
+            );
+            
+            renderTable(filtered);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast';
+            if (type === 'error') toast.classList.add('error');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Download Certificate
+        function downloadCert(guestId) {
+            if (guestId) {
+                window.open('http://localhost:8000/api/certificate/' + guestId, '_blank');
+                showToast('📄 Certificate downloaded!');
+            } else {
+                showToast('❌ No guest ID available', 'error');
+            }
+        }
+
+        // Export functions
+        async function exportCSV() {
+            try {
+                window.open('http://localhost:8000/api/export/csv', '_blank');
+                showToast('CSV exported successfully!');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportJSON() {
+            try {
+                const response = await fetch('http://localhost:8000/api/export/json');
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'registrations_export.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('JSON exported successfully!');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportExcel() {
+            try {
+                window.open('http://localhost:8000/api/export/excel', '_blank');
+                showToast('Excel file exported successfully!');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
+    </script>
+</body>
+</html>

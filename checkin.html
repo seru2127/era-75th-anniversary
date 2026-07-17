@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>ERA 75th - Check-in</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #ff6b00; text-align: center; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 20px; }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #ff6b00;
+        }
+        .btn {
+            padding: 12px 25px;
+            background: #ff6b00;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover { background: #e65c00; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .guest-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+        .guest-info.show { display: block; }
+        .guest-info .label { color: #666; font-size: 12px; }
+        .guest-info .value { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .guest-info .value.guest-id { color: #ff6b00; }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #ff6b00;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .qr-scanner {
+            text-align: center;
+            padding: 20px;
+        }
+        .qr-scanner img {
+            max-width: 150px;
+        }
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .footer-links a {
+            color: #ff6b00;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 ERA 75th - Check-in</h1>
+        <p class="subtitle">Scan or enter Guest ID</p>
+        
+        <div class="qr-scanner">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://localhost:3000/checkin.html" alt="QR Code">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">Scan to open check-in page</p>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="guestIdInput" placeholder="Enter Guest ID (e.g., ERA75-XXXXXX)">
+            <button class="btn" onclick="checkGuest()">🔍 Check</button>
+        </div>
+        
+        <div id="guestInfo" class="guest-info">
+            <div class="label">Guest ID</div>
+            <div class="value guest-id" id="displayGuestId">-</div>
+            
+            <div class="label">Full Name</div>
+            <div class="value" id="displayName">-</div>
+            
+            <div class="label">Email</div>
+            <div class="value" id="displayEmail">-</div>
+            
+            <div class="label">Organization</div>
+            <div class="value" id="displayOrganization">-</div>
+            
+            <div class="label">Category</div>
+            <div class="value" id="displayCategory">-</div>
+            
+            <div id="statusDisplay"></div>
+            
+            <button class="btn btn-success" id="checkinBtn" onclick="performCheckin()" style="width:100%;">✅ Check In</button>
+        </div>
+        
+        <a href="index.html" class="back-link">← Back to Registration</a>
+        
+        <!-- Footer - No "View All Registrations" link -->
+        <div class="footer-links">
+            <a href="login.html">🔐 Admin Login</a>
+        </div>
+    </div>
+
+    <script>
+        let currentGuest = null;
+
+        document.getElementById('guestIdInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkGuest();
+            }
+        });
+
+        async function checkGuest() {
+            const guestId = document.getElementById('guestIdInput').value.trim();
+            if (!guestId) {
+                alert('Please enter a Guest ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/guest/' + guestId);
+                
+                if (response.ok) {
+                    currentGuest = await response.json();
+                    displayGuest(currentGuest);
+                } else if (response.status === 404) {
+                    document.getElementById('guestInfo').classList.remove('show');
+                    showStatus('Guest not found. Please check the ID.', 'error');
+                    currentGuest = null;
+                } else {
+                    document.getElementById('guestInfo').classList.remove('show');
+                    showStatus('Error checking guest.', 'error');
+                    currentGuest = null;
+                }
+            } catch (error) {
+                document.getElementById('guestInfo').classList.remove('show');
+                showStatus('Network error: ' + error.message, 'error');
+                currentGuest = null;
+            }
+        }
+
+        function displayGuest(guest) {
+            document.getElementById('displayGuestId').textContent = guest.guest_id;
+            document.getElementById('displayName').textContent = guest.full_name;
+            document.getElementById('displayEmail').textContent = guest.email;
+            document.getElementById('displayOrganization').textContent = guest.organization || '-';
+            document.getElementById('displayCategory').textContent = guest.category;
+            
+            document.getElementById('guestInfo').classList.add('show');
+            
+            if (guest.checked_in === 1) {
+                showStatus('✅ Already checked in on ' + new Date(guest.checked_in_at).toLocaleString(), 'success');
+                document.getElementById('checkinBtn').style.display = 'none';
+            } else {
+                showStatus('⏳ Pending check-in', 'pending');
+                document.getElementById('checkinBtn').style.display = 'block';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusDisplay');
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+
+        async function performCheckin() {
+            if (!currentGuest) return;
+            
+            if (!confirm('Check in ' + currentGuest.full_name + '?')) return;
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/checkin/' + currentGuest.guest_id, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Check-in successful! Welcome ' + currentGuest.full_name + '!', 'success');
+                    document.getElementById('checkinBtn').style.display = 'none';
+                    document.getElementById('guestIdInput').value = '';
+                    currentGuest = null;
+                } else {
+                    const error = await response.json();
+                    showStatus('❌ Error: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Network error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

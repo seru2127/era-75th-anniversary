@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Login Test</title>
+</head>
+<body>
+    <h1>Simple Login Test</h1>
+    
+    <form id="loginForm">
+        <input type="text" id="username" placeholder="Username" value="admin">
+        <br><br>
+        <input type="password" id="password" placeholder="Password" value="Seruera75">
+        <br><br>
+        <button type="submit">Login</button>
+    </form>
+    
+    <div id="result" style="margin-top:20px;padding:10px;border:1px solid #ccc;"></div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = 'Testing login...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.text();
+                result.innerHTML = 
+                    <pre style="background:#f0f0f0;padding:10px;border-radius:5px;">
+Status: 
+Response: 
+                    </pre>
+                ;
+            } catch (error) {
+                result.innerHTML = 
+                    <pre style="background:#ffcccc;padding:10px;border-radius:5px;color:red;">
+Error: 
+Make sure backend is running on http://localhost:8000
+                    </pre>
+                ;
+            }
+        });
+    </script>
+</body>
+</html>

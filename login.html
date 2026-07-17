@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - ERA 75th</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            max-width: 400px;
+            width: 100%;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #ff6b00; font-size: 28px; }
+        .header .subtitle { color: #666; font-size: 14px; }
+        .header .badge {
+            display: inline-block;
+            background: #ff6b00;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff6b00;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff6b00, #e65c00);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .error {
+            color: #dc3545;
+            padding: 10px;
+            background: #ffe6e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .error.show { display: block; }
+        .success {
+            color: #28a745;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .success.show { display: block; }
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .footer-links a {
+            color: #ff6b00;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 14px;
+        }
+        .footer-links a:hover { text-decoration: underline; }
+        .security-note {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            margin-top: 10px;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Login</h1>
+            <p class="subtitle">ERA 75th Anniversary</p>
+            <span class="badge">July 23, 2026</span>
+        </div>
+        
+        <div id="errorMsg" class="error">Invalid credentials. Please try again.</div>
+        <div id="successMsg" class="success">Login successful! Redirecting...</div>
+        
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Enter username">
+        </div>
+        
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Enter password">
+        </div>
+        
+        <button class="btn" onclick="login()">Login</button>
+        
+        <div class="footer-links">
+            <a href="index.html">Back to Registration</a>
+            <a href="checkin.html">Check-in</a>
+        </div>
+        <div class="security-note">Authorized personnel only</div>
+    </div>
+    
+    <script>
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+            
+            // Hardcoded credentials - case sensitive!
+            if (username === 'admin' && password === 'Seruera75') {
+                successMsg.classList.add('show');
+                setTimeout(function() {
+                    window.location.href = 'admin.html';
+                }, 1000);
+            } else {
+                errorMsg.classList.add('show');
+                document.getElementById('password').value = '';
+                setTimeout(function() {
+                    errorMsg.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        // Enter key support
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>
