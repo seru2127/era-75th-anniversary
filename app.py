@@ -1,7 +1,6 @@
 ﻿from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, HTMLResponse, FileResponse
-import sqlite3
 import secrets
 import string
 from datetime import datetime, timedelta
@@ -14,8 +13,45 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 import os
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, TIMESTAMP, text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
 
-# Create FastAPI app
+# ============ DATABASE SETUP ============
+# Use PostgreSQL if DATABASE_URL is set, otherwise fallback to SQLite
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///./registrations.db')
+
+# Create engine
+if DATABASE_URL.startswith('postgresql'):
+    engine = create_engine(DATABASE_URL)
+else:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# ============ DATABASE MODELS ============
+class Registration(Base):
+    __tablename__ = "registrations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    guest_id = Column(String(20), unique=True, index=True, nullable=False)
+    full_name = Column(String(100), nullable=False)
+    gender = Column(String(10), nullable=False)
+    phone = Column(String(20), nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    organization = Column(String(100), nullable=True)
+    job_title = Column(String(100), nullable=True)
+    city = Column(String(100), nullable=True)
+    category = Column(String(20), nullable=False)
+    registered_at = Column(DateTime, default=datetime.utcnow)
+    checked_in = Column(Integer, default=0)
+    checked_in_at = Column(DateTime, nullable=True)
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+# ============ FASTAPI APP ============
 app = FastAPI()
 
 # CORS
@@ -27,42 +63,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database
+# ============ DATABASE DEPENDENCY ============
 def get_db():
-    conn = sqlite3.connect('registrations.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-def init_db():
-    conn = get_db()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS registrations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guest_id TEXT UNIQUE,
-            full_name TEXT,
-            gender TEXT,
-            phone TEXT,
-            email TEXT UNIQUE,
-            organization TEXT,
-            job_title TEXT,
-            city TEXT,
-            category TEXT,
-            registered_at TIMESTAMP,
-            checked_in INTEGER DEFAULT 0,
-            checked_in_at TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
+# ============ HELPER FUNCTIONS ============
 def generate_guest_id():
     prefix = "ERA75"
     suffix = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     return f"{prefix}-{suffix}"
 
-# Models
+# ============ MODELS ============
 class RegistrationCreate(BaseModel):
     full_name: str
     gender: str
@@ -73,16 +88,15 @@ class RegistrationCreate(BaseModel):
     city: Optional[str] = None
     category: str
 
-# === ROOT ROUTE - Serves HTML ===
+# ============ ROUTES ============
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     try:
         with open("index.html", "r", encoding="utf-8") as f:
             return f.read()
     except:
-        return HTMLResponse("<h1>Welcome to ERA 75th Anniversary Registration</h1><p>Please visit /index.html</p>")
+        return HTMLResponse("<h1>Welcome to ERA 75th Anniversary Registration</h1>")
 
-# === SERVE HTML FILES ===
 @app.get("/{filename}.html", response_class=HTMLResponse)
 async def serve_html(filename: str):
     file_path = f"{filename}.html"
@@ -91,7 +105,6 @@ async def serve_html(filename: str):
             return f.read()
     raise HTTPException(status_code=404, detail="Page not found")
 
-# === SERVE IMAGES ===
 @app.get("/{filename}.png")
 async def serve_png(filename: str):
     file_path = f"{filename}.png"
@@ -99,37 +112,44 @@ async def serve_png(filename: str):
         return FileResponse(file_path, media_type="image/png")
     raise HTTPException(status_code=404, detail="Image not found")
 
-# === API ROUTES ===
-
-# Health check
+# ============ API ROUTES ============
 @app.get("/api/health")
-def health():
-    return {"status": "healthy", "database": "connected"}
-
-# Register
-@app.post("/api/register")
-def register(data: RegistrationCreate):
+def health(db: Session = Depends(get_db)):
     try:
-        conn = get_db()
-        
+        # Test database connection
+        db.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected", "type": "postgresql"}
+    except Exception as e:
+        return {"status": "healthy", "database": "error", "message": str(e)}
+
+@app.post("/api/register")
+def register(data: RegistrationCreate, db: Session = Depends(get_db)):
+    try:
         # Check if email exists
-        existing = conn.execute("SELECT * FROM registrations WHERE email = ?", (data.email,)).fetchone()
+        existing = db.query(Registration).filter(Registration.email == data.email).first()
         if existing:
-            conn.close()
             raise HTTPException(status_code=400, detail="Email already registered")
         
         # Generate guest ID
         guest_id = generate_guest_id()
         
-        # Insert into database
-        conn.execute('''
-            INSERT INTO registrations 
-            (guest_id, full_name, gender, phone, email, organization, job_title, city, category, registered_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (guest_id, data.full_name, data.gender, data.phone, data.email, 
-              data.organization, data.job_title, data.city, data.category, datetime.now()))
-        conn.commit()
-        conn.close()
+        # Create new registration
+        new_registration = Registration(
+            guest_id=guest_id,
+            full_name=data.full_name,
+            gender=data.gender,
+            phone=data.phone,
+            email=data.email,
+            organization=data.organization,
+            job_title=data.job_title,
+            city=data.city,
+            category=data.category,
+            registered_at=datetime.utcnow()
+        )
+        
+        db.add(new_registration)
+        db.commit()
+        db.refresh(new_registration)
         
         return {
             "guest_id": guest_id,
@@ -141,27 +161,35 @@ def register(data: RegistrationCreate):
     except HTTPException as e:
         raise e
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# Get all guests
 @app.get("/api/guests")
-def get_guests():
+def get_guests(db: Session = Depends(get_db)):
     try:
-        conn = get_db()
-        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
-        conn.close()
-        return [dict(row) for row in guests]
+        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
+        return [{
+            "guest_id": g.guest_id,
+            "full_name": g.full_name,
+            "gender": g.gender,
+            "phone": g.phone,
+            "email": g.email,
+            "organization": g.organization,
+            "job_title": g.job_title,
+            "city": g.city,
+            "category": g.category,
+            "registered_at": g.registered_at.isoformat() if g.registered_at else None,
+            "checked_in": g.checked_in,
+            "checked_in_at": g.checked_in_at.isoformat() if g.checked_in_at else None
+        } for g in guests]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Get stats
 @app.get("/api/stats")
-def get_stats():
+def get_stats(db: Session = Depends(get_db)):
     try:
-        conn = get_db()
-        total = conn.execute("SELECT COUNT(*) FROM registrations").fetchone()[0]
-        checked_in = conn.execute("SELECT COUNT(*) FROM registrations WHERE checked_in = 1").fetchone()[0]
-        conn.close()
+        total = db.query(Registration).count()
+        checked_in = db.query(Registration).filter(Registration.checked_in == 1).count()
         return {
             "total": total,
             "checked_in": checked_in,
@@ -171,15 +199,11 @@ def get_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# === EXPORT FUNCTIONS ===
-
-# Export to CSV
+# ============ EXPORT FUNCTIONS ============
 @app.get("/api/export/csv")
-def export_csv():
+def export_csv(db: Session = Depends(get_db)):
     try:
-        conn = get_db()
-        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
-        conn.close()
+        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
         
         output = StringIO()
         writer = csv.writer(output)
@@ -191,20 +215,19 @@ def export_csv():
         ])
         
         for guest in guests:
-            guest_dict = dict(guest)
             writer.writerow([
-                guest_dict.get('guest_id', ''),
-                guest_dict.get('full_name', ''),
-                guest_dict.get('gender', ''),
-                guest_dict.get('phone', ''),
-                guest_dict.get('email', ''),
-                guest_dict.get('organization', '') or '',
-                guest_dict.get('job_title', '') or '',
-                guest_dict.get('city', '') or '',
-                guest_dict.get('category', ''),
-                guest_dict.get('registered_at', ''),
-                'Yes' if guest_dict.get('checked_in', 0) == 1 else 'No',
-                guest_dict.get('checked_in_at', '') or ''
+                guest.guest_id or '',
+                guest.full_name or '',
+                guest.gender or '',
+                guest.phone or '',
+                guest.email or '',
+                guest.organization or '',
+                guest.job_title or '',
+                guest.city or '',
+                guest.category or '',
+                guest.registered_at.isoformat() if guest.registered_at else '',
+                'Yes' if guest.checked_in == 1 else 'No',
+                guest.checked_in_at.isoformat() if guest.checked_in_at else ''
             ])
         
         csv_content = output.getvalue()
@@ -224,35 +247,41 @@ def export_csv():
             status_code=500
         )
 
-# Export to JSON
 @app.get("/api/export/json")
-def export_json():
+def export_json(db: Session = Depends(get_db)):
     try:
-        conn = get_db()
-        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
-        conn.close()
-        return [dict(row) for row in guests]
+        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
+        return [{
+            "guest_id": g.guest_id,
+            "full_name": g.full_name,
+            "gender": g.gender,
+            "phone": g.phone,
+            "email": g.email,
+            "organization": g.organization,
+            "job_title": g.job_title,
+            "city": g.city,
+            "category": g.category,
+            "registered_at": g.registered_at.isoformat() if g.registered_at else None,
+            "checked_in": g.checked_in,
+            "checked_in_at": g.checked_in_at.isoformat() if g.checked_in_at else None
+        } for g in guests]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Export to Excel
 @app.get("/api/export/excel")
-def export_excel():
+def export_excel(db: Session = Depends(get_db)):
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         from openpyxl.utils import get_column_letter
         import io
         
-        conn = get_db()
-        guests = conn.execute("SELECT * FROM registrations ORDER BY registered_at DESC").fetchall()
-        conn.close()
+        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
         
         wb = Workbook()
         ws = wb.active
         ws.title = "ERA 75th Registrations"
         
-        # Define styles
         header_font = Font(bold=True, color="FFFFFF", size=12)
         header_fill = PatternFill(start_color="FF6B00", end_color="FF6B00", fill_type="solid")
         header_alignment = Alignment(horizontal="center", vertical="center")
@@ -263,7 +292,6 @@ def export_excel():
             bottom=Side(style='thin')
         )
         
-        # Headers
         headers = [
             'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
             'Organization', 'Job Title', 'City', 'Category', 
@@ -278,20 +306,19 @@ def export_excel():
             cell.border = border
         
         for row_idx, guest in enumerate(guests, 2):
-            guest_dict = dict(guest)
             data = [
-                guest_dict.get('guest_id', ''),
-                guest_dict.get('full_name', ''),
-                guest_dict.get('gender', ''),
-                guest_dict.get('phone', ''),
-                guest_dict.get('email', ''),
-                guest_dict.get('organization', '') or '',
-                guest_dict.get('job_title', '') or '',
-                guest_dict.get('city', '') or '',
-                guest_dict.get('category', ''),
-                guest_dict.get('registered_at', ''),
-                'Yes' if guest_dict.get('checked_in', 0) == 1 else 'No',
-                guest_dict.get('checked_in_at', '') or ''
+                guest.guest_id or '',
+                guest.full_name or '',
+                guest.gender or '',
+                guest.phone or '',
+                guest.email or '',
+                guest.organization or '',
+                guest.job_title or '',
+                guest.city or '',
+                guest.category or '',
+                guest.registered_at.isoformat() if guest.registered_at else '',
+                'Yes' if guest.checked_in == 1 else 'No',
+                guest.checked_in_at.isoformat() if guest.checked_in_at else ''
             ]
             
             for col, value in enumerate(data, 1):
@@ -312,7 +339,6 @@ def export_excel():
         
         ws.freeze_panes = 'A2'
         
-        # Summary sheet
         summary_ws = wb.create_sheet("Summary")
         summary_ws['A1'] = "ERA 75th Anniversary Event"
         summary_ws['A1'].font = Font(bold=True, size=16, color="FF6B00")
@@ -320,7 +346,7 @@ def export_excel():
         summary_ws['A3'].font = Font(bold=True, size=14)
         
         total = len(guests)
-        checked_in = sum(1 for g in guests if g['checked_in'] == 1)
+        checked_in = sum(1 for g in guests if g.checked_in == 1)
         pending = total - checked_in
         
         summary_data = [
@@ -357,16 +383,11 @@ def export_excel():
             status_code=500
         )
 
-# === END EXPORT FUNCTIONS ===
-
-# Certificate generation
+# ============ CERTIFICATE GENERATION ============
 @app.get("/api/certificate/{guest_id}")
-def generate_certificate(guest_id: str):
+def generate_certificate(guest_id: str, db: Session = Depends(get_db)):
     try:
-        conn = get_db()
-        guest = conn.execute("SELECT * FROM registrations WHERE guest_id = ?", (guest_id,)).fetchone()
-        conn.close()
-        
+        guest = db.query(Registration).filter(Registration.guest_id == guest_id).first()
         if not guest:
             raise HTTPException(status_code=404, detail="Guest not found")
         
@@ -450,7 +471,7 @@ def generate_certificate(guest_id: str):
         # Guest Name
         c.setFillColor(HexColor("#FF6B00"))
         c.setFont("Helvetica-Bold", 38)
-        name = guest['full_name'].upper()
+        name = guest.full_name.upper() if guest.full_name else ""
         c.drawCentredString(page_width / 2, title_y - 100, name)
         
         c.setStrokeColor(HexColor("#FF6B00"))
@@ -471,21 +492,21 @@ def generate_certificate(guest_id: str):
         c.drawString(page_width / 2 - 180, detail_y, "Guest ID:")
         c.setFillColor(HexColor("#FF6B00"))
         c.setFont("Helvetica-Bold", 13)
-        c.drawString(page_width / 2 - 100, detail_y, guest['guest_id'])
+        c.drawString(page_width / 2 - 100, detail_y, guest.guest_id or '')
         
         c.setFillColor(HexColor("#555555"))
         c.setFont("Helvetica", 11)
         c.drawString(page_width / 2 - 180, detail_y - 22, "Organization:")
         c.setFillColor(HexColor("#333333"))
         c.setFont("Helvetica", 12)
-        c.drawString(page_width / 2 - 100, detail_y - 22, guest['organization'] or 'N/A')
+        c.drawString(page_width / 2 - 100, detail_y - 22, guest.organization or 'N/A')
         
         c.setFillColor(HexColor("#555555"))
         c.setFont("Helvetica", 11)
         c.drawString(page_width / 2 - 180, detail_y - 44, "Category:")
         c.setFillColor(HexColor("#333333"))
         c.setFont("Helvetica", 12)
-        c.drawString(page_width / 2 - 100, detail_y - 44, guest['category'])
+        c.drawString(page_width / 2 - 100, detail_y - 44, guest.category or '')
         
         # Date
         c.setFillColor(HexColor("#555555"))
@@ -543,6 +564,109 @@ def generate_certificate(guest_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Certificate generation failed: {str(e)}")
 
+# ============ CHECK-IN ============
+@app.post("/api/checkin/{guest_id}")
+def check_in(guest_id: str, db: Session = Depends(get_db)):
+    try:
+        guest = db.query(Registration).filter(Registration.guest_id == guest_id).first()
+        if not guest:
+            raise HTTPException(status_code=404, detail="Guest not found")
+        
+        if guest.checked_in == 1:
+            raise HTTPException(status_code=400, detail="Guest already checked in")
+        
+        guest.checked_in = 1
+        guest.checked_in_at = datetime.utcnow()
+        db.commit()
+        
+        return {"message": "Guest checked in successfully", "guest_id": guest_id}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============ ANALYTICS ============
+@app.get("/api/analytics/daily")
+def get_daily_stats(db: Session = Depends(get_db)):
+    try:
+        from sqlalchemy import func, cast, Date
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        results = db.query(
+            cast(Registration.registered_at, Date).label('date'),
+            func.count().label('count')
+        ).filter(Registration.registered_at >= thirty_days_ago)\
+         .group_by(cast(Registration.registered_at, Date))\
+         .order_by('date').all()
+        
+        return [{"date": str(r.date), "count": r.count} for r in results]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/categories")
+def get_category_breakdown(db: Session = Depends(get_db)):
+    try:
+        results = db.query(
+            Registration.category,
+            func.count().label('count')
+        ).group_by(Registration.category).order_by(func.count().desc()).all()
+        
+        return [{"category": r.category, "count": r.count} for r in results]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/checkins")
+def get_checkin_analytics(db: Session = Depends(get_db)):
+    try:
+        from sqlalchemy import func, extract
+        total = db.query(Registration).count()
+        checked = db.query(Registration).filter(Registration.checked_in == 1).count()
+        
+        results = db.query(
+            extract('hour', Registration.checked_in_at).label('hour'),
+            func.count().label('count')
+        ).filter(Registration.checked_in == 1)\
+         .filter(Registration.checked_in_at.isnot(None))\
+         .group_by(extract('hour', Registration.checked_in_at))\
+         .order_by('hour').all()
+        
+        return {
+            "total_guests": total,
+            "checked_in": checked,
+            "pending": total - checked,
+            "check_in_rate": round((checked / total * 100) if total > 0 else 0, 1),
+            "by_hour": [{"hour": str(int(r.hour)).zfill(2), "count": r.count} for r in results]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============ SEARCH ============
+@app.get("/api/search")
+def search_guests(q: str, db: Session = Depends(get_db)):
+    try:
+        query = f"%{q}%"
+        guests = db.query(Registration).filter(
+            Registration.full_name.like(query) |
+            Registration.email.like(query) |
+            Registration.guest_id.like(query) |
+            Registration.phone.like(query) |
+            Registration.organization.like(query)
+        ).order_by(Registration.registered_at.desc()).all()
+        
+        return [{
+            "guest_id": g.guest_id,
+            "full_name": g.full_name,
+            "email": g.email,
+            "phone": g.phone,
+            "organization": g.organization,
+            "category": g.category,
+            "registered_at": g.registered_at.isoformat() if g.registered_at else None,
+            "checked_in": g.checked_in
+        } for g in guests]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============ RUN ============
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
