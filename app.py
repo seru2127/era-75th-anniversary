@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException
+﻿from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, HTMLResponse, FileResponse
 import secrets
@@ -18,22 +18,18 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
 # ============ DATABASE SETUP ============
-# Get database URL from environment variable
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# If no DATABASE_URL, use SQLite as fallback
 if not DATABASE_URL:
     DATABASE_URL = 'sqlite:///./registrations.db'
     print("⚠️ Using SQLite (no DATABASE_URL environment variable found)")
 else:
     print(f"✅ Using PostgreSQL: {DATABASE_URL[:30]}...")
 
-# Handle both PostgreSQL and SQLite
+# Database engine
 if DATABASE_URL.startswith('postgres'):
-    # PostgreSQL - no special arguments needed
     engine = create_engine(DATABASE_URL)
 else:
-    # SQLite
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -129,7 +125,6 @@ async def serve_png(filename: str):
 @app.get("/api/health")
 def health(db: Session = Depends(get_db)):
     try:
-        # Test database connection
         db.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected", "type": "postgresql" if DATABASE_URL.startswith('postgres') else "sqlite"}
     except Exception as e:
@@ -138,15 +133,12 @@ def health(db: Session = Depends(get_db)):
 @app.post("/api/register")
 def register(data: RegistrationCreate, db: Session = Depends(get_db)):
     try:
-        # Check if email exists
         existing = db.query(Registration).filter(Registration.email == data.email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        # Generate guest ID
         guest_id = generate_guest_id()
         
-        # Create new registration
         new_registration = Registration(
             guest_id=guest_id,
             full_name=data.full_name,
