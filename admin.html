@@ -89,6 +89,14 @@
             color: #ff6b00;
             font-size: 14px;
         }
+        .footer-credit {
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+            padding: 15px 0 5px 0;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
         @media (max-width: 600px) {
             .container { padding: 15px; }
             .header { flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -120,7 +128,6 @@
             <div class="stat-box"><div class="number" id="pendingCount">0</div><div class="label">Pending</div></div>
         </div>
         
-        <!-- Search Bar -->
         <div class="search-bar">
             <input type="text" id="searchInput" placeholder="Search by name, email, ID, phone, or organization..." onkeyup="searchGuests()">
             <span style="font-size:14px;color:#666;" id="searchResultCount"></span>
@@ -146,6 +153,8 @@
                 <tr><td colspan="9" style="text-align:center;padding:30px;">Loading registrations...</td></tr>
             </tbody>
         </table>
+        
+        <div class="footer-credit">DDS-CyberSeru July 2026</div>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -213,7 +222,6 @@
             document.getElementById('searchResultCount').textContent = guests.length + ' results';
         }
 
-        // Search function
         function searchGuests() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             
@@ -244,7 +252,6 @@
             }, 3000);
         }
 
-        // Download Certificate
         function downloadCert(guestId) {
             if (guestId) {
                 window.open(API_URL + '/api/certificate/' + guestId, '_blank');
@@ -254,7 +261,6 @@
             }
         }
 
-        // Export functions
         async function exportCSV() {
             try {
                 window.open(API_URL + '/api/export/csv', '_blank');
@@ -293,7 +299,6 @@
             }
         }
 
-        // Load data when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
         });
