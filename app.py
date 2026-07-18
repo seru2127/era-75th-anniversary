@@ -17,20 +17,32 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, t
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-# ============ DATABASE SETUP ============
+# ============ FORCE POSTGRESQL CONNECTION ============
+# Get the database URL from environment variable
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
+# If no DATABASE_URL is found, the app will fail loudly and clearly
 if not DATABASE_URL:
-    DATABASE_URL = 'sqlite:///./registrations.db'
-    print("⚠️ Using SQLite (no DATABASE_URL environment variable found)")
+    raise Exception("❌ DATABASE_URL environment variable is not set! Cannot connect to PostgreSQL.")
 else:
-    print(f"✅ Using PostgreSQL: {DATABASE_URL[:30]}...")
+    print(f"✅ Found DATABASE_URL: {DATABASE_URL[:30]}...")
 
-# Database engine
-if DATABASE_URL.startswith('postgres'):
+# Force SQLAlchemy to use PostgreSQL
+if DATABASE_URL.startswith('postgresql'):
     engine = create_engine(DATABASE_URL)
+    print("✅ Using PostgreSQL engine")
 else:
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    # This ensures we never accidentally fall back to SQLite
+    raise Exception(f"❌ Invalid DATABASE_URL format: {DATABASE_URL[:20]}... Must start with 'postgresql'")
+
+# Test the connection immediately on startup
+try:
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+        print("✅ PostgreSQL connection successful!")
+except Exception as e:
+    print(f"❌ PostgreSQL connection failed: {e}")
+    raise e
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -126,7 +138,7 @@ async def serve_png(filename: str):
 def health(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected", "type": "postgresql" if DATABASE_URL.startswith('postgres') else "sqlite"}
+        return {"status": "healthy", "database": "connected", "type": "postgresql"}
     except Exception as e:
         return {"status": "healthy", "database": "error", "message": str(e)}
 
@@ -172,7 +184,7 @@ def register(data: RegistrationCreate, db: Session = Depends(get_db)):
 @app.get("/api/guests")
 def get_guests(db: Session = Depends(get_db)):
     try:
-        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
+        guests = db.query(Registration).order_by(Registration.registered_at.asc()).all()
         return [{
             "guest_id": g.guest_id,
             "full_name": g.full_name,
@@ -208,19 +220,20 @@ def get_stats(db: Session = Depends(get_db)):
 @app.get("/api/export/csv")
 def export_csv(db: Session = Depends(get_db)):
     try:
-        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
+        guests = db.query(Registration).order_by(Registration.registered_at.asc()).all()
         
         output = StringIO()
         writer = csv.writer(output)
         
         writer.writerow([
-            'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
+            '#', 'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
             'Organization', 'Job Title', 'City', 'Category', 
             'Registered At', 'Checked In', 'Checked In At'
         ])
         
-        for guest in guests:
+        for idx, guest in enumerate(guests, 1):
             writer.writerow([
+                idx,
                 guest.guest_id or '',
                 guest.full_name or '',
                 guest.gender or '',
@@ -255,8 +268,9 @@ def export_csv(db: Session = Depends(get_db)):
 @app.get("/api/export/json")
 def export_json(db: Session = Depends(get_db)):
     try:
-        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
+        guests = db.query(Registration).order_by(Registration.registered_at.asc()).all()
         return [{
+            "row_number": idx,
             "guest_id": g.guest_id,
             "full_name": g.full_name,
             "gender": g.gender,
@@ -269,7 +283,7 @@ def export_json(db: Session = Depends(get_db)):
             "registered_at": g.registered_at.isoformat() if g.registered_at else None,
             "checked_in": g.checked_in,
             "checked_in_at": g.checked_in_at.isoformat() if g.checked_in_at else None
-        } for g in guests]
+        } for idx, g in enumerate(guests, 1)]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -281,7 +295,7 @@ def export_excel(db: Session = Depends(get_db)):
         from openpyxl.utils import get_column_letter
         import io
         
-        guests = db.query(Registration).order_by(Registration.registered_at.desc()).all()
+        guests = db.query(Registration).order_by(Registration.registered_at.asc()).all()
         
         wb = Workbook()
         ws = wb.active
@@ -298,7 +312,7 @@ def export_excel(db: Session = Depends(get_db)):
         )
         
         headers = [
-            'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
+            '#', 'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
             'Organization', 'Job Title', 'City', 'Category', 
             'Registered At', 'Checked In', 'Checked In At'
         ]
@@ -312,6 +326,7 @@ def export_excel(db: Session = Depends(get_db)):
         
         for row_idx, guest in enumerate(guests, 2):
             data = [
+                row_idx - 1,
                 guest.guest_id or '',
                 guest.full_name or '',
                 guest.gender or '',
@@ -330,7 +345,7 @@ def export_excel(db: Session = Depends(get_db)):
                 cell = ws.cell(row=row_idx, column=col, value=value)
                 cell.border = border
                 cell.alignment = Alignment(horizontal="left", vertical="center")
-                if col == 11:
+                if col == 12:
                     if value == 'Yes':
                         cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
                     else:
@@ -339,7 +354,7 @@ def export_excel(db: Session = Depends(get_db)):
         for col in range(1, len(headers) + 1):
             column_letter = get_column_letter(col)
             ws.column_dimensions[column_letter].auto_size = True
-            if col in [2, 5, 6]:
+            if col in [3, 6, 7]:
                 ws.column_dimensions[column_letter].width = 25
         
         ws.freeze_panes = 'A2'
@@ -656,7 +671,7 @@ def search_guests(q: str, db: Session = Depends(get_db)):
             Registration.guest_id.like(query) |
             Registration.phone.like(query) |
             Registration.organization.like(query)
-        ).order_by(Registration.registered_at.desc()).all()
+        ).order_by(Registration.registered_at.asc()).all()
         
         return [{
             "guest_id": g.guest_id,
