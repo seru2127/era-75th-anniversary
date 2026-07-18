@@ -13,18 +13,27 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 import os
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, TIMESTAMP, text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
 # ============ DATABASE SETUP ============
-# Use PostgreSQL if DATABASE_URL is set, otherwise fallback to SQLite
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///./registrations.db')
+# Get database URL from environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Create engine
-if DATABASE_URL.startswith('postgresql'):
+# If no DATABASE_URL, use SQLite as fallback
+if not DATABASE_URL:
+    DATABASE_URL = 'sqlite:///./registrations.db'
+    print("⚠️ Using SQLite (no DATABASE_URL environment variable found)")
+else:
+    print(f"✅ Using PostgreSQL: {DATABASE_URL[:30]}...")
+
+# Handle both PostgreSQL and SQLite
+if DATABASE_URL.startswith('postgres'):
+    # PostgreSQL - no special arguments needed
     engine = create_engine(DATABASE_URL)
 else:
+    # SQLite
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -49,7 +58,11 @@ class Registration(Base):
     checked_in_at = Column(DateTime, nullable=True)
 
 # Create tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables created/verified")
+except Exception as e:
+    print(f"❌ Database creation error: {e}")
 
 # ============ FASTAPI APP ============
 app = FastAPI()
@@ -118,7 +131,7 @@ def health(db: Session = Depends(get_db)):
     try:
         # Test database connection
         db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected", "type": "postgresql"}
+        return {"status": "healthy", "database": "connected", "type": "postgresql" if DATABASE_URL.startswith('postgres') else "sqlite"}
     except Exception as e:
         return {"status": "healthy", "database": "error", "message": str(e)}
 
