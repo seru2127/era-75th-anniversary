@@ -18,24 +18,18 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
 # ============ FORCE POSTGRESQL CONNECTION ============
-# Get the database URL from environment variable
 DATABASE_URL = os.environ.get('DATABASE_URL')
-
-# If no DATABASE_URL is found, the app will fail loudly and clearly
 if not DATABASE_URL:
     raise Exception("❌ DATABASE_URL environment variable is not set! Cannot connect to PostgreSQL.")
 else:
     print(f"✅ Found DATABASE_URL: {DATABASE_URL[:30]}...")
 
-# Force SQLAlchemy to use PostgreSQL
 if DATABASE_URL.startswith('postgresql'):
     engine = create_engine(DATABASE_URL)
     print("✅ Using PostgreSQL engine")
 else:
-    # This ensures we never accidentally fall back to SQLite
     raise Exception(f"❌ Invalid DATABASE_URL format: {DATABASE_URL[:20]}... Must start with 'postgresql'")
 
-# Test the connection immediately on startup
 try:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
@@ -214,6 +208,26 @@ def get_stats(db: Session = Depends(get_db)):
             "check_in_rate": round((checked_in / total * 100) if total > 0 else 0, 1)
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============ BULK DELETE ENDPOINT ============
+@app.post("/api/guests/bulk-delete")
+def bulk_delete(guest_ids: List[str], db: Session = Depends(get_db)):
+    try:
+        if not guest_ids or len(guest_ids) == 0:
+            raise HTTPException(status_code=400, detail="No guest IDs provided")
+        
+        deleted_count = 0
+        for guest_id in guest_ids:
+            guest = db.query(Registration).filter(Registration.guest_id == guest_id).first()
+            if guest:
+                db.delete(guest)
+                deleted_count += 1
+        
+        db.commit()
+        return {"message": f"Deleted {deleted_count} guests successfully"}
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============ EXPORT FUNCTIONS ============
