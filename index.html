@@ -337,6 +337,12 @@
             </div>
 
             <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="date" id="dateOfBirth">
+                <div class="error" id="dobErr">Please enter a valid date</div>
+            </div>
+
+            <div class="form-group">
                 <label>Organization</label>
                 <input type="text" id="organization" placeholder="Your organization">
             </div>
@@ -417,11 +423,9 @@
     </div>
 
     <script>
-        // API URL for live deployment
         const API_BASE = 'https://era-75th-anniversary.onrender.com';
         let currentGuestId = '';
 
-        // Gender selection styling
         document.querySelectorAll('.gender-group label').forEach(label => {
             label.addEventListener('click', function() {
                 document.querySelectorAll('.gender-group label').forEach(l => l.classList.remove('active'));
@@ -450,7 +454,6 @@
             }
         }
 
-        // Update guest count
         async function updateGuestCount() {
             try {
                 const response = await fetch(API_BASE + '/api/stats');
@@ -461,12 +464,9 @@
             }
         }
 
-        // Load guest count on page load
         updateGuestCount();
 
         document.getElementById('registerBtn').addEventListener('click', async function() {
-            console.log('Register button clicked');
-            
             document.querySelectorAll('.error').forEach(el => el.classList.remove('show'));
             
             let valid = true;
@@ -506,10 +506,7 @@
                 valid = false;
             }
             
-            if (!valid) {
-                console.log('Validation failed');
-                return;
-            }
+            if (!valid) return;
             
             const btn = document.getElementById('registerBtn');
             const loading = document.getElementById('loadingDiv');
@@ -518,19 +515,19 @@
             btn.textContent = 'Processing...';
             loading.style.display = 'block';
             
+            const dob = document.getElementById('dateOfBirth').value || null;
+            
             const data = {
                 full_name: fullName.value.trim(),
                 gender: gender.value,
                 phone: phone.value.trim(),
                 email: email.value.trim(),
+                date_of_birth: dob,
                 organization: document.getElementById('organization').value.trim() || null,
                 job_title: document.getElementById('jobTitle').value.trim() || null,
                 city: document.getElementById('city').value.trim() || null,
                 category: category.value
             };
-            
-            console.log('Sending data:', data);
-            console.log('API URL:', API_BASE + '/api/register');
             
             try {
                 const response = await fetch(API_BASE + '/api/register', {
@@ -539,9 +536,7 @@
                     body: JSON.stringify(data)
                 });
                 
-                console.log('Response status:', response.status);
                 const result = await response.json();
-                console.log('Response data:', result);
                 
                 if (response.ok) {
                     currentGuestId = result.guest_id;
@@ -549,7 +544,6 @@
                     document.getElementById('guestIdDisplay').textContent = result.guest_id;
                     document.getElementById('successModal').classList.add('show');
                     document.getElementById('regForm').reset();
-                    // Reset gender styling
                     document.querySelectorAll('.gender-group label').forEach(l => l.classList.remove('active'));
                     document.querySelector('.gender-group label:first-child').classList.add('active');
                     document.querySelector('input[name="gender"][value="Male"]').checked = true;
@@ -559,7 +553,6 @@
                     document.getElementById('errorModal').classList.add('show');
                 }
             } catch (error) {
-                console.error('Error:', error);
                 document.getElementById('errorMessage').textContent = 'Cannot connect to backend: ' + error.message;
                 document.getElementById('errorModal').classList.add('show');
             }
