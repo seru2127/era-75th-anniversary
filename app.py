@@ -13,39 +13,9 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 import os
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Date, text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-
-# ============ SMS Configuration ============
-# For testing, we'll simulate SMS. To enable real SMS:
-# 1. Sign up at twilio.com
-# 2. Get Account SID, Auth Token, and Twilio Phone Number
-# 3. Uncomment the twilio import and code below
-
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
-TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
-
-def send_sms(phone_number: str, message: str):
-    """Send SMS using Twilio (simulated if credentials not set)"""
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_PHONE_NUMBER:
-        print(f"📱 [SIMULATED SMS] To: {phone_number}")
-        print(f"📱 Message: {message}")
-        return {"simulated": True, "message": "SMS simulated (no Twilio credentials)"}
-    
-    try:
-        from twilio.rest import Client
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        message = client.messages.create(
-            body=message,
-            from_=TWILIO_PHONE_NUMBER,
-            to=phone_number
-        )
-        return {"sid": message.sid, "status": "sent"}
-    except Exception as e:
-        print(f"❌ SMS error: {e}")
-        return {"error": str(e), "status": "failed"}
 
 # ============ FORCE POSTGRESQL CONNECTION ============
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -81,7 +51,6 @@ class Registration(Base):
     gender = Column(String(10), nullable=False)
     phone = Column(String(20), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
-    date_of_birth = Column(Date, nullable=True)
     organization = Column(String(100), nullable=True)
     job_title = Column(String(100), nullable=True)
     city = Column(String(100), nullable=True)
@@ -89,8 +58,6 @@ class Registration(Base):
     registered_at = Column(DateTime, default=datetime.utcnow)
     checked_in = Column(Integer, default=0)
     checked_in_at = Column(DateTime, nullable=True)
-    sms_sent = Column(Integer, default=0)
-    sms_sent_at = Column(DateTime, nullable=True)
 
 # Create tables
 try:
@@ -131,7 +98,6 @@ class RegistrationCreate(BaseModel):
     gender: str
     phone: str
     email: str
-    date_of_birth: Optional[str] = None
     organization: Optional[str] = None
     job_title: Optional[str] = None
     city: Optional[str] = None
@@ -173,30 +139,18 @@ def health(db: Session = Depends(get_db)):
 @app.post("/api/register")
 def register(data: RegistrationCreate, db: Session = Depends(get_db)):
     try:
-        # Check if email exists
         existing = db.query(Registration).filter(Registration.email == data.email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        # Generate guest ID
         guest_id = generate_guest_id()
         
-        # Parse date of birth if provided
-        dob = None
-        if data.date_of_birth:
-            try:
-                dob = datetime.strptime(data.date_of_birth, '%Y-%m-%d').date()
-            except:
-                pass
-        
-        # Create new registration
         new_registration = Registration(
             guest_id=guest_id,
             full_name=data.full_name,
             gender=data.gender,
             phone=data.phone,
             email=data.email,
-            date_of_birth=dob,
             organization=data.organization,
             job_title=data.job_title,
             city=data.city,
@@ -208,17 +162,12 @@ def register(data: RegistrationCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_registration)
         
-        # Send SMS notification
-        sms_message = f"ERA75: Thank you {data.full_name}! Your Guest ID: {guest_id}. Show this at the gate. ERA 75th Anniversary."
-        sms_result = send_sms(data.phone, sms_message)
-        
         return {
             "guest_id": guest_id,
             "full_name": data.full_name,
             "email": data.email,
             "category": data.category,
-            "message": "Registration successful",
-            "sms": sms_result
+            "message": "Registration successful"
         }
     except HTTPException as e:
         raise e
@@ -236,15 +185,13 @@ def get_guests(db: Session = Depends(get_db)):
             "gender": g.gender,
             "phone": g.phone,
             "email": g.email,
-            "date_of_birth": g.date_of_birth.isoformat() if g.date_of_birth else None,
             "organization": g.organization,
             "job_title": g.job_title,
             "city": g.city,
             "category": g.category,
             "registered_at": g.registered_at.isoformat() if g.registered_at else None,
             "checked_in": g.checked_in,
-            "checked_in_at": g.checked_in_at.isoformat() if g.checked_in_at else None,
-            "sms_sent": g.sms_sent
+            "checked_in_at": g.checked_in_at.isoformat() if g.checked_in_at else None
         } for g in guests]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -293,7 +240,7 @@ def export_csv(db: Session = Depends(get_db)):
         writer = csv.writer(output)
         
         writer.writerow([
-            '#', 'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 'Date of Birth',
+            '#', 'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
             'Organization', 'Job Title', 'City', 'Category', 
             'Registered At', 'Checked In', 'Checked In At'
         ])
@@ -306,7 +253,6 @@ def export_csv(db: Session = Depends(get_db)):
                 guest.gender or '',
                 guest.phone or '',
                 guest.email or '',
-                guest.date_of_birth.isoformat() if guest.date_of_birth else '',
                 guest.organization or '',
                 guest.job_title or '',
                 guest.city or '',
@@ -344,7 +290,6 @@ def export_json(db: Session = Depends(get_db)):
             "gender": g.gender,
             "phone": g.phone,
             "email": g.email,
-            "date_of_birth": g.date_of_birth.isoformat() if g.date_of_birth else None,
             "organization": g.organization,
             "job_title": g.job_title,
             "city": g.city,
@@ -381,7 +326,7 @@ def export_excel(db: Session = Depends(get_db)):
         )
         
         headers = [
-            '#', 'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 'Date of Birth',
+            '#', 'Guest ID', 'Full Name', 'Gender', 'Phone', 'Email', 
             'Organization', 'Job Title', 'City', 'Category', 
             'Registered At', 'Checked In', 'Checked In At'
         ]
@@ -401,7 +346,6 @@ def export_excel(db: Session = Depends(get_db)):
                 guest.gender or '',
                 guest.phone or '',
                 guest.email or '',
-                guest.date_of_birth.isoformat() if guest.date_of_birth else '',
                 guest.organization or '',
                 guest.job_title or '',
                 guest.city or '',
@@ -415,7 +359,7 @@ def export_excel(db: Session = Depends(get_db)):
                 cell = ws.cell(row=row_idx, column=col, value=value)
                 cell.border = border
                 cell.alignment = Alignment(horizontal="left", vertical="center")
-                if col == 13:
+                if col == 12:
                     if value == 'Yes':
                         cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
                     else:
@@ -424,7 +368,7 @@ def export_excel(db: Session = Depends(get_db)):
         for col in range(1, len(headers) + 1):
             column_letter = get_column_letter(col)
             ws.column_dimensions[column_letter].auto_size = True
-            if col in [3, 6, 7, 8]:
+            if col in [3, 6, 7]:
                 ws.column_dimensions[column_letter].width = 25
         
         ws.freeze_panes = 'A2'
@@ -755,20 +699,6 @@ def search_guests(q: str, db: Session = Depends(get_db)):
         } for g in guests]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-# ============ SMS TEST ENDPOINT ============
-@app.get("/api/test-sms")
-def test_sms():
-    """Test endpoint to verify SMS configuration"""
-    test_phone = os.environ.get('TEST_PHONE_NUMBER', '0912345678')
-    test_message = "ERA75 Test: Your SMS is working!"
-    result = send_sms(test_phone, test_message)
-    return {
-        "message": "SMS test completed",
-        "phone": test_phone,
-        "result": result,
-        "note": "If simulated, no actual SMS was sent. To enable real SMS, set TWILIO credentials."
-    }
 
 # ============ RUN ============
 if __name__ == "__main__":

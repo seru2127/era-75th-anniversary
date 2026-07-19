@@ -7,4 +7,3 @@ python-multipart
 reportlab
 Pillow
 openpyxl
-twilio

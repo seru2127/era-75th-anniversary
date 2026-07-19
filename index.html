@@ -337,12 +337,6 @@
             </div>
 
             <div class="form-group">
-                <label>Date of Birth</label>
-                <input type="date" id="dateOfBirth">
-                <div class="error" id="dobErr">Please enter a valid date</div>
-            </div>
-
-            <div class="form-group">
                 <label>Organization</label>
                 <input type="text" id="organization" placeholder="Your organization">
             </div>
@@ -515,14 +509,11 @@
             btn.textContent = 'Processing...';
             loading.style.display = 'block';
             
-            const dob = document.getElementById('dateOfBirth').value || null;
-            
             const data = {
                 full_name: fullName.value.trim(),
                 gender: gender.value,
                 phone: phone.value.trim(),
                 email: email.value.trim(),
-                date_of_birth: dob,
                 organization: document.getElementById('organization').value.trim() || null,
                 job_title: document.getElementById('jobTitle').value.trim() || null,
                 city: document.getElementById('city').value.trim() || null,
