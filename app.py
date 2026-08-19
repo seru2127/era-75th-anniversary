@@ -455,35 +455,47 @@ def generate_certificate(guest_id: str, db: Session = Depends(get_db)):
         c.line(page_width - 35, 35, page_width - 35 - corner_size, 35)
         c.line(page_width - 35, 35, page_width - 35, 35 + corner_size)
         
-        # Watermark
+        # Watermark (Transparent)
         try:
-            watermark_path = "era_logo.png"
+            watermark_path = "era_logo_transparent.png"
             if os.path.exists(watermark_path):
                 watermark = ImageReader(watermark_path)
                 c.saveState()
                 c.setFillColorRGB(1, 1, 1, 0.08)
                 c.drawImage(watermark, page_width/2 - 150, page_height/2 - 150, 
-                           width=300, height=300, preserveAspectRatio=True, mask='auto')
+                           width=300, height=300, preserveAspectRatio=True)
                 c.restoreState()
         except:
             pass
         
-        # Logos
+        # Logos - Using Transparent Versions
         logo_y = page_height - 75
         
+        # Left Logo (ERA 75)
         try:
-            left_logo_path = "era_75_logo.png"
+            left_logo_path = "era_75_logo_transparent.png"
             if os.path.exists(left_logo_path):
                 left_logo = ImageReader(left_logo_path)
                 c.drawImage(left_logo, 50, logo_y - 35, width=80, height=60, preserveAspectRatio=True)
+            else:
+                left_logo_path = "era_75_logo.png"
+                if os.path.exists(left_logo_path):
+                    left_logo = ImageReader(left_logo_path)
+                    c.drawImage(left_logo, 50, logo_y - 35, width=80, height=60, preserveAspectRatio=True, mask='auto')
         except:
             pass
         
+        # Right Logo (ERA)
         try:
-            right_logo_path = "era_logo.png"
+            right_logo_path = "era_logo_transparent.png"
             if os.path.exists(right_logo_path):
                 right_logo = ImageReader(right_logo_path)
                 c.drawImage(right_logo, page_width - 130, logo_y - 35, width=80, height=60, preserveAspectRatio=True)
+            else:
+                right_logo_path = "era_logo.png"
+                if os.path.exists(right_logo_path):
+                    right_logo = ImageReader(right_logo_path)
+                    c.drawImage(right_logo, page_width - 130, logo_y - 35, width=80, height=60, preserveAspectRatio=True, mask='auto')
         except:
             pass
         
@@ -547,7 +559,7 @@ def generate_certificate(guest_id: str, db: Session = Depends(get_db)):
         c.setFont("Helvetica", 11)
         c.drawCentredString(page_width / 2, detail_y - 75, "Date: July 23, 2026")
         
-        # Signature
+        # Signature (Transparent)
         signature_y = 120
         
         c.setStrokeColor(HexColor("#333333"))
@@ -555,36 +567,43 @@ def generate_certificate(guest_id: str, db: Session = Depends(get_db)):
         c.line(page_width / 2 - 100, signature_y, page_width / 2 + 100, signature_y)
         
         try:
-            signature_path = "director_signature.png"
+            signature_path = "director_signature_transparent.png"
             if os.path.exists(signature_path):
                 signature = ImageReader(signature_path)
                 c.drawImage(signature, page_width / 2 - 60, signature_y + 5, 
-                           width=120, height=40, preserveAspectRatio=True, mask='auto')
+                           width=120, height=40, preserveAspectRatio=True)
             else:
-                c.setFillColor(HexColor("#333333"))
-                c.setFont("Helvetica", 11)
-                c.drawCentredString(page_width / 2, signature_y + 10, "Director General")
+                signature_path = "director_signature.png"
+                if os.path.exists(signature_path):
+                    signature = ImageReader(signature_path)
+                    c.drawImage(signature, page_width / 2 - 60, signature_y + 5, 
+                               width=120, height=40, preserveAspectRatio=True, mask='auto')
+                else:
+                    c.setFillColor(HexColor("#333333"))
+                    c.setFont("Helvetica", 11)
+                    c.drawCentredString(page_width / 2, signature_y + 10, "Director General")
         except:
             c.setFillColor(HexColor("#333333"))
             c.setFont("Helvetica", 11)
             c.drawCentredString(page_width / 2, signature_y + 10, "Director General")
         
+        # Signature label
         c.setFillColor(HexColor("#555555"))
         c.setFont("Helvetica", 10)
         c.drawCentredString(page_width / 2, signature_y - 18, "Director General")
         c.drawCentredString(page_width / 2, signature_y - 32, "Ethiopian Roads Administration")
         
-        # === DECORATIVE DIVIDER ===
+        # Decorative divider
         c.setStrokeColor(HexColor("#D4AF37"))
         c.setLineWidth(0.5)
         c.line(page_width / 2 - 60, signature_y - 50, page_width / 2 + 60, signature_y - 50)
         
-        # === DDS-CyberSeru CREDIT ===
+        # DDS-CyberSeru Credit
         c.setFillColor(HexColor("#999999"))
         c.setFont("Helvetica", 8)
         c.drawCentredString(page_width / 2, signature_y - 65, "Certificate generated by DDS-CyberSeru")
         
-        # === FOOTER ===
+        # Footer
         c.setFillColor(HexColor("#888888"))
         c.setFont("Helvetica", 7)
         c.drawCentredString(page_width / 2, 35, "Ethiopian Roads Administration - ERA 75th Anniversary Celebration")
