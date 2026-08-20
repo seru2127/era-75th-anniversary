@@ -1,253 +1,166 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERA 75th - Check-in</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            max-width: 500px;
-            width: 100%;
-            padding: 35px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
+        body { font-family: Arial; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1 { color: #ff6b00; text-align: center; }
-        .subtitle { text-align: center; color: #666; margin-bottom: 20px; }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .input-group input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-        .input-group input:focus {
-            outline: none;
-            border-color: #ff6b00;
-        }
-        .btn {
-            padding: 12px 25px;
-            background: #ff6b00;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .input-group input:focus { outline: none; border-color: #ff6b00; }
+        .btn { padding: 12px 25px; background: #ff6b00; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn:hover { background: #e65c00; }
         .btn-success { background: #28a745; }
         .btn-success:hover { background: #218838; }
-        .guest-info {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            display: none;
-        }
+        .guest-info { background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; display: none; }
         .guest-info.show { display: block; }
         .guest-info .label { color: #666; font-size: 12px; }
         .guest-info .value { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; }
         .guest-info .value.guest-id { color: #ff6b00; }
-        .status {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            text-align: center;
-            font-weight: bold;
-        }
+        .status { padding: 15px; border-radius: 8px; margin: 10px 0; text-align: center; font-weight: bold; }
         .status.success { background: #d4edda; color: #155724; }
         .status.error { background: #f8d7da; color: #721c24; }
         .status.pending { background: #fff3cd; color: #856404; }
-        .back-link {
-            display: block;
-            text-align: center;
-            margin-top: 15px;
-            color: #ff6b00;
-            text-decoration: none;
-        }
-        .back-link:hover { text-decoration: underline; }
-        .qr-scanner {
-            text-align: center;
-            padding: 20px;
-        }
-        .qr-scanner img {
-            max-width: 150px;
-        }
-        .footer-links {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        .footer-links a {
-            color: #ff6b00;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .footer-links a:hover { text-decoration: underline; }
-        .footer-credit {
-            text-align: center;
-            font-size: 10px;
-            color: #999;
-            padding: 10px 0 5px 0;
-            border-top: 1px solid #eee;
-            margin-top: 15px;
-        }
-        @media (max-width: 600px) {
-            .container { padding: 25px; }
-        }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #ff6b00; text-decoration: none; }
+        .footer-credit { text-align: center; font-size: 10px; color: #999; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Check-in</h1>
-        <p class="subtitle">ERA 75th Anniversary</p>
-        
-        <div class="qr-scanner">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=/checkin.html" alt="QR Code">
-            <p style="font-size: 12px; color: #666; margin-top: 5px;">Scan to open check-in page</p>
-        </div>
-        
-        <div class="input-group">
-            <input type="text" id="guestIdInput" placeholder="Enter Guest ID (e.g., ERA75-XXXXXX)">
-            <button class="btn" onclick="checkGuest()">Check</button>
-        </div>
-        
-        <div id="guestInfo" class="guest-info">
-            <div class="label">Guest ID</div>
-            <div class="value guest-id" id="displayGuestId">-</div>
-            
-            <div class="label">Full Name</div>
-            <div class="value" id="displayName">-</div>
-            
-            <div class="label">Email</div>
-            <div class="value" id="displayEmail">-</div>
-            
-            <div class="label">Organization</div>
-            <div class="value" id="displayOrganization">-</div>
-            
-            <div class="label">Category</div>
-            <div class="value" id="displayCategory">-</div>
-            
-            <div id="statusDisplay"></div>
-            
-            <button class="btn btn-success" id="checkinBtn" onclick="performCheckin()" style="width:100%;">Check In</button>
-        </div>
-        
-        <a href="index.html" class="back-link">Back to Registration</a>
-        
-        <div class="footer-links">
-            <a href="login.html">Admin Login</a>
-        </div>
-        
-        <div class="footer-credit">
-            DDS-CyberSeru July 2026
-        </div>
+<div class="container">
+    <h1>Check-in</h1>
+    <p style="text-align:center;color:#666;">ERA 75th Anniversary</p>
+
+    <div class="input-group">
+        <input type="text" id="guestIdInput" placeholder="Enter Guest ID (e.g., ERA75-XXXXXX)">
+        <button class="btn" onclick="checkGuest()">Check</button>
     </div>
 
-    <script>
-        let currentGuest = null;
+    <div id="guestInfo" class="guest-info">
+        <div class="label">Guest ID</div>
+        <div class="value guest-id" id="displayGuestId">-</div>
+        <div class="label">Full Name</div>
+        <div class="value" id="displayName">-</div>
+        <div class="label">Email</div>
+        <div class="value" id="displayEmail">-</div>
+        <div class="label">Organization</div>
+        <div class="value" id="displayOrganization">-</div>
+        <div class="label">Category</div>
+        <div class="value" id="displayCategory">-</div>
+        <div id="statusDisplay"></div>
+        <button class="btn btn-success" id="checkinBtn" onclick="performCheckin()" style="width:100%;display:none;">Check In</button>
+    </div>
 
-        document.getElementById('guestIdInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkGuest();
+    <a href="/" class="back-link">← Back to Registration</a>
+    <div class="footer-credit">DDS-CyberSeru July 2026</div>
+</div>
+
+<script>
+// API base – empty for relative calls
+const API_BASE = '';
+
+async function checkGuest() {
+    const guestId = document.getElementById('guestIdInput').value.trim();
+    if (!guestId) {
+        alert('Please enter a Guest ID');
+        return;
+    }
+
+    const guestInfo = document.getElementById('guestInfo');
+    const statusDisplay = document.getElementById('statusDisplay');
+
+    // Reset display
+    guestInfo.classList.remove('show');
+    statusDisplay.textContent = '';
+    statusDisplay.className = 'status';
+
+    try {
+        const response = await fetch(API_BASE + '/api/guest/' + encodeURIComponent(guestId));
+        if (!response.ok) {
+            if (response.status === 404) {
+                showStatus('Guest not found. Please check the ID.', 'error');
+            } else {
+                showStatus('Error: ' + response.status, 'error');
             }
+            return;
+        }
+
+        const guest = await response.json();
+        displayGuest(guest);
+    } catch (error) {
+        console.error('Check guest error:', error);
+        showStatus('Network error: ' + error.message, 'error');
+    }
+}
+
+function displayGuest(guest) {
+    document.getElementById('displayGuestId').textContent = guest.guest_id;
+    document.getElementById('displayName').textContent = guest.full_name;
+    document.getElementById('displayEmail').textContent = guest.email;
+    document.getElementById('displayOrganization').textContent = guest.organization || '-';
+    document.getElementById('displayCategory').textContent = guest.category;
+
+    document.getElementById('guestInfo').classList.add('show');
+
+    if (guest.checked_in === 1) {
+        showStatus('Already checked in on ' + new Date(guest.checked_in_at).toLocaleString(), 'success');
+        document.getElementById('checkinBtn').style.display = 'none';
+    } else {
+        showStatus('Pending check-in', 'pending');
+        document.getElementById('checkinBtn').style.display = 'block';
+        // Store guest data for check-in
+        window._currentGuest = guest;
+    }
+}
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('statusDisplay');
+    statusDiv.className = 'status ' + type;
+    statusDiv.textContent = message;
+}
+
+async function performCheckin() {
+    const guest = window._currentGuest;
+    if (!guest) {
+        alert('No guest loaded. Please check a guest first.');
+        return;
+    }
+
+    if (!confirm('Check in ' + guest.full_name + '?')) return;
+
+    try {
+        const response = await fetch(API_BASE + '/api/checkin/' + encodeURIComponent(guest.guest_id), {
+            method: 'POST'
         });
 
-        async function checkGuest() {
-            const guestId = document.getElementById('guestIdInput').value.trim();
-            if (!guestId) {
-                alert('Please enter a Guest ID');
-                return;
-            }
-            
+        if (response.ok) {
+            showStatus('Check-in successful! Welcome ' + guest.full_name + '!', 'success');
+            document.getElementById('checkinBtn').style.display = 'none';
+            document.getElementById('guestIdInput').value = '';
+            window._currentGuest = null;
+        } else {
+            const errorText = await response.text();
+            let errorMsg = 'Check-in failed';
             try {
-                const response = await fetch('/api/guest/' + guestId);
-                
-                if (response.ok) {
-                    currentGuest = await response.json();
-                    displayGuest(currentGuest);
-                } else if (response.status === 404) {
-                    document.getElementById('guestInfo').classList.remove('show');
-                    showStatus('Guest not found. Please check the ID.', 'error');
-                    currentGuest = null;
-                } else {
-                    document.getElementById('guestInfo').classList.remove('show');
-                    showStatus('Error checking guest.', 'error');
-                    currentGuest = null;
-                }
-            } catch (error) {
-                document.getElementById('guestInfo').classList.remove('show');
-                showStatus('Network error: ' + error.message, 'error');
-                currentGuest = null;
-            }
+                const err = JSON.parse(errorText);
+                errorMsg = err.detail || errorMsg;
+            } catch (e) {}
+            showStatus('Error: ' + errorMsg, 'error');
         }
+    } catch (error) {
+        console.error('Check-in error:', error);
+        showStatus('Network error: ' + error.message, 'error');
+    }
+}
 
-        function displayGuest(guest) {
-            document.getElementById('displayGuestId').textContent = guest.guest_id;
-            document.getElementById('displayName').textContent = guest.full_name;
-            document.getElementById('displayEmail').textContent = guest.email;
-            document.getElementById('displayOrganization').textContent = guest.organization || '-';
-            document.getElementById('displayCategory').textContent = guest.category;
-            
-            document.getElementById('guestInfo').classList.add('show');
-            
-            if (guest.checked_in === 1) {
-                showStatus('Already checked in on ' + new Date(guest.checked_in_at).toLocaleString(), 'success');
-                document.getElementById('checkinBtn').style.display = 'none';
-            } else {
-                showStatus('Pending check-in', 'pending');
-                document.getElementById('checkinBtn').style.display = 'block';
-            }
-        }
-
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('statusDisplay');
-            statusDiv.className = 'status ' + type;
-            statusDiv.textContent = message;
-            statusDiv.style.display = 'block';
-        }
-
-        async function performCheckin() {
-            if (!currentGuest) return;
-            
-            if (!confirm('Check in ' + currentGuest.full_name + '?')) return;
-            
-            try {
-                const response = await fetch('/api/checkin/' + currentGuest.guest_id, {
-                    method: 'POST'
-                });
-                
-                if (response.ok) {
-                    showStatus('Check-in successful! Welcome ' + currentGuest.full_name + '!', 'success');
-                    document.getElementById('checkinBtn').style.display = 'none';
-                    document.getElementById('guestIdInput').value = '';
-                    currentGuest = null;
-                } else {
-                    const error = await response.json();
-                    showStatus('Error: ' + error.detail, 'error');
-                }
-            } catch (error) {
-                showStatus('Network error: ' + error.message, 'error');
-            }
-        }
-    </script>
+// Allow Enter key on input field
+document.getElementById('guestIdInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        checkGuest();
+    }
+});
+</script>
 </body>
 </html>
