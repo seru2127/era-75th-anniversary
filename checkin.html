@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -121,7 +121,7 @@
         <p class="subtitle">ERA 75th Anniversary</p>
         
         <div class="qr-scanner">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://era-75th-anniversary.onrender.com/checkin.html" alt="QR Code">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=/checkin.html" alt="QR Code">
             <p style="font-size: 12px; color: #666; margin-top: 5px;">Scan to open check-in page</p>
         </div>
         
@@ -179,7 +179,7 @@
             }
             
             try {
-                const response = await fetch('http://localhost:8000/api/guest/' + guestId);
+                const response = await fetch('/api/guest/' + guestId);
                 
                 if (response.ok) {
                     currentGuest = await response.json();
@@ -231,7 +231,7 @@
             if (!confirm('Check in ' + currentGuest.full_name + '?')) return;
             
             try {
-                const response = await fetch('http://localhost:8000/api/checkin/' + currentGuest.guest_id, {
+                const response = await fetch('/api/checkin/' + currentGuest.guest_id, {
                     method: 'POST'
                 });
                 
