@@ -17,25 +17,33 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, t
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-# ============ FORCE POSTGRESQL CONNECTION ============
+# ============ DATABASE SETUP (Supports SQLite & PostgreSQL) ============
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
 if not DATABASE_URL:
-    raise Exception("❌ DATABASE_URL environment variable is not set! Cannot connect to PostgreSQL.")
+    # If no DATABASE_URL is set, use SQLite for local development
+    DATABASE_URL = "sqlite:///./registrations.db"
+    print("⚠️ DATABASE_URL not set, using SQLite for local development")
 else:
     print(f"✅ Found DATABASE_URL: {DATABASE_URL[:30]}...")
 
+# Create engine based on URL type
 if DATABASE_URL.startswith('postgresql'):
     engine = create_engine(DATABASE_URL)
     print("✅ Using PostgreSQL engine")
+elif DATABASE_URL.startswith('sqlite'):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    print("✅ Using SQLite engine")
 else:
-    raise Exception(f"❌ Invalid DATABASE_URL format: {DATABASE_URL[:20]}... Must start with 'postgresql'")
+    raise Exception(f"❌ Unsupported database URL: {DATABASE_URL[:20]}...")
 
+# Test connection
 try:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
-        print("✅ PostgreSQL connection successful!")
+        print("✅ Database connection successful!")
 except Exception as e:
-    print(f"❌ PostgreSQL connection failed: {e}")
+    print(f"❌ Database connection failed: {e}")
     raise e
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -132,7 +140,7 @@ async def serve_png(filename: str):
 def health(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected", "type": "postgresql"}
+        return {"status": "healthy", "database": "connected", "type": "postgresql" if DATABASE_URL.startswith('postgres') else "sqlite"}
     except Exception as e:
         return {"status": "healthy", "database": "error", "message": str(e)}
 
